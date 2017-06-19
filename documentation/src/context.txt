@@ -1,0 +1,9 @@
+[ Glossary ]
+
+/delineate
+	Reveal the surface of the AST of a given document for a language. An AST parser provides
+	the full structure of a document, but for documentation use cases, only the surface
+	is desired, at first, along with corresponding documentation.
+
+	In Python's case, delineation currently reveals the surface of the structures provided by
+	CPython's runtime.
