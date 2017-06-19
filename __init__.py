@@ -1,4 +1,4 @@
 """
 # Python language tools.
 """
-pass
+__factor_type__ = 'project'
