@@ -21,7 +21,7 @@ def apply(path:str, callable:object):
 		ast.fix_missing_locations(a)
 		return callable(a)
 
-def coverable(ast, hasattr=hasattr):
+def coverable(tree, hasattr=hasattr):
 	"""
 	# Construct a &set of lines numbers that contains code
 	# that can be covered.
@@ -31,7 +31,7 @@ def coverable(ast, hasattr=hasattr):
 	seq = set()
 	add = seq.add
 
-	for x in ast.walk(a):
+	for x in ast.walk(tree):
 		if not hasattr(x, 'lineno'):
 			continue
 
