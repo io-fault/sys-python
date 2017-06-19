@@ -467,7 +467,7 @@ class Context(object):
 			elif self.is_module(v):
 				# handled the same way as module imports
 				with self.cursor(k, v):
-					yield from d_import(module, v, qn)
+					yield from self.d_import(module, v, qn)
 			elif isinstance(v, type):
 				# XXX: Nested classes are not being properly represented.
 				# Visually, they should appear as siblings in the formatted representation,
