@@ -1,6 +1,6 @@
 identity = 'http://fault.io/src/fault.python'
 name = 'python'
-abstract = 'Delineation and coverage tools for Python using CPython'
+abstract = 'Delineation and coverage instrumentation tools for CPython'
 icon = '🐍'
 
 fork = 'cpython'
