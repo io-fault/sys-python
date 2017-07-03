@@ -8,5 +8,5 @@ def test_syntax(test):
 
 if __name__ == '__main__':
 	import sys
-	from ...development import libtest
+	from fault.development import libtest
 	libtest.execute(sys.modules[__name__])

@@ -137,7 +137,7 @@ def prepare(
 
 	if Chronometer is None:
 		# import here to avoid import-time dependency.
-		from ..chronometry.kernel import Chronometer
+		from fault.chronometry.kernel import Chronometer
 
 	events = Sequence()
 	chronometer = Chronometer()

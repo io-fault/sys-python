@@ -5,9 +5,9 @@
 """
 
 import sys
-from ...system import libfactor
-from ...system import library as libsys
-from ...routes import library as libroutes
+from fault.system import libfactor
+from fault.system import library as libsys
+from fault.routes import library as libroutes
 from .. import xml
 
 def main(inv:libsys.Invocation):

@@ -17,14 +17,14 @@ import importlib
 import typing
 import pickle
 
-from ..system import libfactor
-from ..routes import library as libroutes
-from ..xml import library as libxml
-from ..xml import python as xep
-from ..text import library as libtext
-from ..factors import tools
+from fault.system import libfactor
+from fault.routes import library as libroutes
+from fault.xml import library as libxml
+from fault.xml import python as xep
+from fault.text import library as libtext
 
-from ..development import xml as devxml
+from fault.development import fragments
+from fault.development import xml as devxml
 
 serialization = xep.Serialization() # currently only utf-8 is used.
 
@@ -178,11 +178,11 @@ class Context(object):
 
 		if fl.startswith('\t'):
 			indentation = len(fl) - len(fl.lstrip('\t'))
-			plines = tools.strip_notation_prefix([x[indentation:] for x in lines])
+			plines = fragments.strip_notation_prefix([x[indentation:] for x in lines])
 			return '\n'.join(plines)
 		else:
 			# assume no indentation and likely single line
-			plines = tools.strip_notation_prefix(lines)
+			plines = fragments.strip_notation_prefix(lines)
 			return '\n'.join(plines)
 
 	if hasattr(inspect, 'signature'):
@@ -724,7 +724,6 @@ class Context(object):
 
 if __name__ == '__main__':
 	# structure a single module
-	import sys
 	r = libroutes.Import.from_fullname(sys.argv[1])
 	w = sys.stdout.buffer.write
 	wl = sys.stdout.buffer.writelines
