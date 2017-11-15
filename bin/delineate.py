@@ -17,11 +17,11 @@ def main(inv:libsys.Invocation):
 	w = sys.stdout.buffer.write
 	wl = sys.stdout.buffer.writelines
 
-	w(b'<?xml version="1.0" encoding="utf-8"?>')
 	ctx = xml.Context(r)
-	module = r.module()
+	module = r.module(trap=False)
 	module.__factor_composite__ = libfactor.composite(r)
 
+	w(b'<?xml version="1.0" encoding="utf-8"?>')
 	i = ctx.serialize(module)
 	wl(i)
 	sys.stdout.flush()
