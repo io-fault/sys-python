@@ -1,3 +1,3 @@
-from fault.development.probes import libpython
+from fault.development import ipython
 __factor_domain__ = 'system'
 __factor_type__ = 'extension'
