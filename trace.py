@@ -8,12 +8,12 @@
 # Common usage:
 
 #!/pl/python
-	collector, events = tracing.prepare()
+	collector, events = trace.prepare()
 	with collector:
 		...
-	aggregate = tracing.measure(events)
+	aggregate = trace.measure(events)
 
-# [ Development Tasks ]
+# [ Engineering ]
 
 	# - Refactor &measure as a stateful method that can be called during collection
 		# in order to reduce memory consumption during long runs.
@@ -49,7 +49,7 @@ event_integers = {
 
 class Collector(object):
 	"""
-	# Python collector. &instr.Collector is used when available.
+	# Python collector used when &..extensions.instr is not available.
 	"""
 
 	def __init__(self, endpoint, time_delta):
@@ -87,18 +87,11 @@ class Collector(object):
 		"""
 		sys.settrace(self)
 
-	def profile(self):
-		"""
-		# Subscribe to profile data only.
-		"""
-		sys.setprofile(self)
-
 	def cancel(self):
 		"""
 		# Cancel the collection of data in the current thread.
 		"""
 		sys.settrace(None)
-		sys.setprofile(None)
 
 	def __enter__(self):
 		self.subscribe()
@@ -180,17 +173,16 @@ def measure(
 		# Usually, a triple whose first key is the calling context, the second is
 		# the traced events, and the third is the time index.
 
-	# [ Effects ]
+	# [ Return ]
 
-	# /Product
-		# A pair consisting of the exact call times, cumulative and resident, and the line counts.
+	# A pair consisting of the exact call times, cumulative and resident, and the line counts.
 
-		# Each item in the tuple is a mapping. The line counts is a two-level mapping
-		# keyed with the filename followed with the line number. The line number is a key
-		# to a &collections.Counter instance. The exact timings is a mapping whose keys
-		# are tuples whose contents are the calling context of the time measurements. The
-		# value of the mapping is a sequence of pairs describing the cumulative and resident
-		# times of the call context (key).
+	# Each item in the tuple is a mapping. The line counts is a two-level mapping
+	# keyed with the filename followed with the line number. The line number is a key
+	# to a &collections.Counter instance. The exact timings is a mapping whose keys
+	# are tuples whose contents are the calling context of the time measurements. The
+	# value of the mapping is a sequence of pairs describing the cumulative and resident
+	# times of the call context (key).
 	"""
 
 	call_state = deque((0,))
@@ -201,6 +193,7 @@ def measure(
 
 	# Calculate timings and hit counts.
 	path = deque()
+	parent = None
 	for x in events:
 		(filename, func_lineno, lineno, func_name), event, delta = x
 		call = (filename, func_lineno, func_name)

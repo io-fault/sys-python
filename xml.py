@@ -417,6 +417,7 @@ class Context(object):
 				# XXX: needs tests
 				s = serialization.switch('d:')
 				yield from s.error(err, obj, set())
+				continue
 
 			if self.is_class_method(v):
 				if v.__name__.split('.')[-1] != k:

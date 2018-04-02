@@ -1,5 +1,8 @@
 """
 # Query functions for interrogating Python ASTs.
+
+# Primarily provides functions for extracting the set of coverable lines for identifying accurate
+# coverage percentage.
 """
 import ast
 
@@ -27,20 +30,23 @@ def coverable(tree, hasattr=hasattr):
 	# that can be covered.
 
 	# Used by Python coverage reporting tools to identify coverage percentage.
+
+	# [ Engineering ]
+	# Currently does not extract exact expression ranges. Future revisions will
+	# need information similar to what &..fragments.llvm provides.
 	"""
 	seq = set()
 	add = seq.add
 
 	for x in ast.walk(tree):
-		if not hasattr(x, 'lineno'):
+		if not hasattr(x, 'lineno') or x.col_offset == -1:
 			continue
 
-		if x.col_offset != -1:
-			if isinstance(x, untraversable_nodes):
-				# Letting expression nodes generate the coverable set.
-				# These nodes don't actually generate line events during tracing.
-				continue
-			add(x.lineno)
+		if isinstance(x, untraversable_nodes):
+			# Letting expression nodes generate the coverable set.
+			# These nodes don't actually generate line events during tracing.
+			continue
+		add(x.lineno)
 
 	return seq
 
