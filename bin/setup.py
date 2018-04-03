@@ -1,5 +1,6 @@
 """
-# Extend metrics or inspect construction contexts with adapters built against the selected Python implementation.
+# Extend metrics or delineation construction contexts with adapters built against the selected
+# Python implementation.
 """
 import sys
 import importlib
@@ -30,9 +31,9 @@ def add_delineate_mechanism(route:libroutes.File, tool_name:str):
 
 	return cc.update_named_mechanism(route, tool_name, delineate_template)
 
-def inspect(inv, fault, ctx, ctx_route, ctx_params):
+def delineation(inv, fault, ctx, ctx_route, ctx_params):
 	"""
-	# Initialize the syntax tooling for inspect contexts.
+	# Initialize the syntax tooling for delineation contexts.
 	"""
 	ctx_route = libroutes.File.from_absolute(inv.environ['CONTEXT'])
 
@@ -45,7 +46,7 @@ def inspect(inv, fault, ctx, ctx_route, ctx_params):
 		}
 	}
 
-	cc.update_named_mechanism(ctx_route / 'mechanisms' / 'intent.xml', tool_name, data)
+	cc.update_named_mechanism(ctx_route / 'mechanisms' / 'intent.xml', tool_name, mechanism_layer)
 	return inv.exit(0)
 
 def metrics(inv, fault, ctx, ctx_route, ctx_params):
@@ -85,8 +86,8 @@ def main(inv:libsys.Invocation):
 
 	if ctx_intention == 'metrics':
 		return metrics(inv, fault, ctx, ctx_route, ctx_params)
-	elif ctx_intention == 'inspect':
-		return inspect(inv, fault, ctx, ctx_route, ctx_params)
+	elif ctx_intention == 'delineation':
+		return delineation(inv, fault, ctx, ctx_route, ctx_params)
 	else:
 		sys.stderr.write("! ERROR: unsupported context with %r intention\n" %(ctx_intention,))
 		return inv.exit(1)
