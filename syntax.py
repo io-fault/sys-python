@@ -33,7 +33,7 @@ def coverable(tree, hasattr=hasattr):
 
 	# [ Engineering ]
 	# Currently does not extract exact expression ranges. Future revisions will
-	# need information similar to what &..fragments.llvm provides.
+	# need information similar to what &..adapters.llvm provides.
 	"""
 	seq = set()
 	add = seq.add
