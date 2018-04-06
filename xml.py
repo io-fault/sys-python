@@ -23,8 +23,8 @@ from fault.xml import library as libxml
 from fault.xml import python as xep
 from fault.text import library as libtext
 
-from ...construct import fragments
-from ...construct import xml as devxml
+from ...integrate import fragments
+from ...integrate import xml as devxml
 
 serialization = xep.Serialization() # currently only utf-8 is used.
 

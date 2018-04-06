@@ -8,7 +8,7 @@ import itertools
 
 from fault.system import library as libsys
 from fault.routes import library as libroutes
-from ....construct import cc
+from ....integrate import cc
 
 tool_name = 'python'
 
