@@ -1,8 +1,7 @@
 """
-# Query functions for interrogating Python ASTs.
+# AST tools for manipulating and querying a Python AST.
 
-# Primarily provides functions for extracting the set of coverable lines for identifying accurate
-# coverage percentage.
+# Provides functions for instrumentation(future), constant injection, and coverable area detection(limited).
 """
 import ast
 
