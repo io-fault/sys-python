@@ -6,7 +6,7 @@ import collections
 import pickle
 import itertools
 
-from ...integrate import metrics
+from ...factors import metrics
 
 from . import syntax
 from . import trace
