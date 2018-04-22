@@ -1,0 +1,12 @@
+[ metrics ]
+
+Counter and timings storage for instrumentation coverage and profiling.
+
+/__init__.py
+	#!/pl/python
+		pass
+
+/instrumentation.py
+	#!/pl/python
+		import collections
+		counters = collections.Counter()
