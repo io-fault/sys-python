@@ -5,6 +5,9 @@ import types
 import importlib
 
 def serialize(code, time, size):
+	"""
+	# Serialize the given &code object for filesystem storage into a &bytes instance.
+	"""
 	return importlib._bootstrap_external._code_to_bytecode(code, time, size)
 
 def store(target:str, code:types.CodeType, time:int, size:int) -> types.CodeType:

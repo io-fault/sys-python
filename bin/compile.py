@@ -5,13 +5,14 @@
 """
 import os
 from fault.system import library as libsys
-from fault.chronometry import library as libtime
+from fault.time import library as libtime
 
 from .. import module
 from .. import bytecode
 
 def subprocess_bytecode_compiler(
-		build, adapter, o_type, output, i_type, inputs,
+		build, adapter,
+		o_type, output, i_type, inputs,
 		verbose=True,
 		format=None,
 		filepath=str
@@ -31,7 +32,8 @@ def subprocess_bytecode_compiler(
 	return command
 
 def function_bytecode_compiler(
-		build, adapter, o_type, output, i_type, inputs,
+		build, adapter,
+		o_type, output, i_type, inputs,
 		verbose=True, filepath=str
 	):
 	"""
@@ -77,9 +79,7 @@ def store(target, source, optimize, parameters=None):
 		st = os.fstat(f.fileno())
 		bytecode.store(target, co, st.st_mtime, st.st_size)
 
-def main(
-		inv:libsys.Invocation
-	) -> libsys.Exit:
+def main(inv:libsys.Invocation) -> libsys.Exit:
 	target, infile, *remainder = inv.args
 
 	params = dict()

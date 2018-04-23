@@ -8,22 +8,35 @@ import itertools
 
 from ...factors import metrics
 
-from . import syntax
 from . import trace
+from . import instrumentation
+from . import source
 
 class Probe(metrics.Probe):
 	def project(self, telemetry, route, frames):
 		"""
-		# Identify traversable lines in the Python factor sources.
+		# Identify counters in the Python factor sources.
 		"""
 		data = collections.defaultdict(dict)
 
 		for factor, pyc in frames.items():
 			src = str(pyc[-1][0])
-			traversable = syntax.apply(src, syntax.coverable)
+			with open(src) as f:
+				tree, nodes = source.parse(f.read(), src, filter=instrumentation.visit)
+
+			selector = ((node, instrumentation.delineate(node)) for node in nodes)
 			data[src] = {
-				line: ((line, 1, line+1, 0), 'code')
-				for line in traversable
+				(addr[0], addr[1]+1, addr[2], addr[3]+1): (
+					(addr[0], addr[1]+1, addr[2], addr[3]+1),
+					node[0].__class__.__name__
+					if not isinstance(node[0], (source.ast.Str, source.ast.Name))
+					else '%s[%s]' %(
+						node[1].__class__.__name__,
+						node[0].__class__.__name__,
+					)
+				)
+				for node, addr in selector
+				if addr is not None
 			}
 
 		return data
@@ -31,7 +44,7 @@ class Probe(metrics.Probe):
 	@contextlib.contextmanager
 	def setup(self, context, telemetry, data):
 		"""
-		# No-op context manager. Python requires no setup.
+		# Install the meta path hook for loading instrumented bytecode.
 		"""
 
 		try:
@@ -47,23 +60,28 @@ class Probe(metrics.Probe):
 		# is emitted as a pickle file relative to &measures.
 		"""
 
-		traceref, events = trace.prepare()
 		try:
-			traceref.subscribe()
 			yield None
 		finally:
-			traceref.cancel()
+			pass
 
-			# Extract measurements from the collected events
-			# and record them into the measure directory..
-			profile, coverage = trace.measure(events)
 			m = measures / self.name / 'profile.pickle'
 			with m.open('wb') as f:
-				pickle.dump(profile, f)
+				pickle.dump({}, f)
 
-			m = measures / self.name / 'coverage.pickle'
-			with m.open('wb') as f:
-				pickle.dump(coverage, f)
+			try:
+				from f_telemetry.python import instrumentation as python_tm
+				m = measures / self.name / 'coverage.pickle'
+				data = collections.defaultdict(collections.Counter)
+				for counter in python_tm.counters.items():
+					(path, address), count = counter
+					sl, sc, el, ec = address
+					data[path][(sl,sc+1,el,ec+1)] = count
+
+				with m.open('wb') as f:
+					pickle.dump(data, f)
+			except ImportError:
+				raise
 
 	@staticmethod
 	def abstract_call_selector(call):
@@ -76,8 +94,7 @@ class Probe(metrics.Probe):
 		else:
 			lambda_type = None
 
-		la = metrics.libsyntax.Area.from_line_range((line, line))
-		return path, metrics.SymbolQualifiedLocator(la, symbol, lambda_type)
+		return path, metrics.SymbolQualifiedLocator((line, line), symbol, lambda_type)
 
 	def profile(self, factors, measures):
 		data = collections.defaultdict(lambda: collections.defaultdict(list))
@@ -101,4 +118,4 @@ class Probe(metrics.Probe):
 				coverage = pickle.load(f)
 
 			for path, counters in coverage.items():
-				yield path, list(counters.items())
+				yield path, [(k, v) for k,v in counters.items()]

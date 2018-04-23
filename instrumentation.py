@@ -209,7 +209,11 @@ def apply(path, noded):
 
 	return instrument(path, noded, area)
 
-def compile(factor, source, path, constants, optimize=1, parse=source.parse, filter=visit):
+def compile(factor, source, path, constants, optimize=1,
+		parse=source.parse,
+		hash=module.hash_syntax,
+		filter=visit
+	):
 	"""
 	# Compile Python source of a module into an instrumented &types.CodeObject
 	"""
@@ -224,7 +228,7 @@ def compile(factor, source, path, constants, optimize=1, parse=source.parse, fil
 		apply(path, noded)
 
 	# Add timestamp and factor id.
-	module.inject(tree, factor, constants)
+	module.inject(tree, factor, hash(source), constants)
 	tree.body[0:0] = construct_initialization_nodes().body
 
 	return builtins.compile(tree, path, 'exec', optimize=optimize)

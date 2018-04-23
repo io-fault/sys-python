@@ -49,6 +49,28 @@ def delineation(inv, fault, ctx, ctx_route, ctx_params):
 	cc.update_named_mechanism(ctx_route / 'mechanisms' / 'intent.xml', tool_name, mechanism_layer)
 	return inv.exit(0)
 
+def instantiate_software(dst, package, name, template, type, fault='fault'):
+	# Initiialize llvm instrumentation or delineation tooling inside the target context.
+	ctxpy = dst / 'lib' / 'python'
+
+	command = [
+		"python3", "-m",
+		fault+'.text.bin.ifst',
+		str(ctxpy / package / name),
+		str(template), 'context', type,
+	]
+
+	print(command)
+	pid, status, data = libsys.effect(libsys.KInvocation(sys.executable, command))
+	if status != 0:
+		sys.stderr.write("! ERROR: tool instantiation failed\n")
+		sys.stderr.write("\t/command\n\t\t" + " ".join(command) + "\n")
+		sys.stderr.write("\t/status\n\t\t" + str(status) + "\n")
+
+		sys.stderr.write("\t/message\n")
+		sys.stderr.buffer.writelines(b"\t\t" + x + b"\n" for x in data.split(b"\n"))
+		raise SystemExit(1)
+
 def metrics(inv, fault, ctx, ctx_route, ctx_params):
 	"""
 	# Initialize the instrumentation tooling for metrics contexts.
@@ -57,6 +79,9 @@ def metrics(inv, fault, ctx, ctx_route, ctx_params):
 	mech = (ctx_route / 'mechanisms' / 'intent.xml')
 
 	args = inv.args
+
+	imp = libroutes.Import.from_fullname(__package__).container
+	instantiate_software(ctx_route, 'f_telemetry', tool_name, imp / 'templates', 'metrics')
 
 	mechanism_layer = {
 		'bytecode.python': {
@@ -77,7 +102,7 @@ def metrics(inv, fault, ctx, ctx_route, ctx_params):
 
 	return inv.exit(0)
 
-def main(inv:libsys.Invocation):
+def main(inv:libsys.Invocation) -> libsys.Exit:
 	fault = inv.environ.get('FAULT_CONTEXT_NAME', 'fault')
 	ctx_route = libroutes.File.from_absolute(inv.environ['CONTEXT'])
 	ctx = cc.Context.from_directory(ctx_route)
