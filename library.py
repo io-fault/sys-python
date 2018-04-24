@@ -100,8 +100,11 @@ class Probe(metrics.Probe):
 		data = collections.defaultdict(lambda: collections.defaultdict(list))
 		for m_typ, m_id, m_route in measures:
 			profile_data = m_route / self.name / 'profile.pickle'
-			with profile_data.open('rb') as f:
-				profile = pickle.load(f)
+			try:
+				with profile_data.open('rb') as f:
+					profile = pickle.load(f)
+			except EOFError:
+				continue
 
 			for (caller, call), times in profile.items():
 				path, sql = self.abstract_call_selector(call)
@@ -114,8 +117,12 @@ class Probe(metrics.Probe):
 	def counters(self, factors, measures):
 		for m_typ, m_id, m_route in measures:
 			coverage_data = m_route / self.name / 'coverage.pickle'
-			with coverage_data.open('rb') as f:
-				coverage = pickle.load(f)
+			try:
+				with coverage_data.open('rb') as f:
+					coverage = pickle.load(f)
+			except EOFError:
+				# Likely empty file.
+				continue
 
 			for path, counters in coverage.items():
 				yield path, [(k, v) for k,v in counters.items()]
