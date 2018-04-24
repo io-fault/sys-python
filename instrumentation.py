@@ -26,7 +26,7 @@ def visit_expression(node, parent, field, index):
 	if isinstance(node, ast.withitem):
 		yield from visit_expression(node.context_expr, node, 'context_expr', None)
 		return
-	elif isinstance(node, (ast.Starred, ast.comprehension)):
+	elif isinstance(node, (ast.keyword, ast.Starred, ast.comprehension)):
 		# Instrument the inside of the comprehension.
 		yield from visit_expression(node.value, node, 'value', None)
 		return
