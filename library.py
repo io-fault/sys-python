@@ -1,6 +1,7 @@
 """
 # Support for Python coverage tooling suitable for fault metrics contexts.
 """
+import sys
 import contextlib
 import collections
 import pickle
@@ -41,16 +42,49 @@ class Probe(metrics.Probe):
 
 		return data
 
+	def override(self, executable=sys.executable):
+		from fault.system import execution
+		from .bin import execute
+		prefix = [executable, '-m', execute.__name__]
+
+		l = (lambda i, x, y, name: (sys.executable, prefix + ['script', x] + y))
+		execution.root.install("python-script", l)
+
+		l = (lambda i, x, y, name: (sys.executable, prefix + ['module', x] + y))
+		execution.root.install("python-module", l)
+
 	@contextlib.contextmanager
 	def setup(self, context, telemetry, data):
 		"""
 		# Install the meta path hook for loading instrumented bytecode.
 		"""
 
+		from f_telemetry.python import instrumentation as python_tm
+		self.override()
+
 		try:
 			yield None
 		finally:
 			pass
+
+	def transmit(self, directory):
+		m = directory / 'profile.pickle'
+		with m.open('wb') as f:
+			pickle.dump({}, f)
+
+		try:
+			from f_telemetry.python import instrumentation as python_tm
+			m = directory / 'coverage.pickle'
+			data = collections.defaultdict(collections.Counter)
+			for counter in python_tm.counters.items():
+				(path, address), count = counter
+				sl, sc, el, ec = address
+				data[path][(sl,sc+1,el,ec+1)] = count
+
+			with m.open('wb') as f:
+				pickle.dump(data, f)
+		except ImportError:
+			raise
 
 	@contextlib.contextmanager
 	def connect(self, harness, measures):
@@ -63,25 +97,12 @@ class Probe(metrics.Probe):
 		try:
 			yield None
 		finally:
-			pass
+			self.transmit(measures / self.name)
 
-			m = measures / self.name / 'profile.pickle'
-			with m.open('wb') as f:
-				pickle.dump({}, f)
-
-			try:
-				from f_telemetry.python import instrumentation as python_tm
-				m = measures / self.name / 'coverage.pickle'
-				data = collections.defaultdict(collections.Counter)
-				for counter in python_tm.counters.items():
-					(path, address), count = counter
-					sl, sc, el, ec = address
-					data[path][(sl,sc+1,el,ec+1)] = count
-
-				with m.open('wb') as f:
-					pickle.dump(data, f)
-			except ImportError:
-				raise
+	def reconnect(self, measures, process_data, finder):
+		import atexit
+		self.override()
+		atexit.register(self.transmit, process_data / self.name)
 
 	@staticmethod
 	def abstract_call_selector(call):
