@@ -43,6 +43,10 @@ class Probe(metrics.Probe):
 		return data
 
 	def override(self, executable=sys.executable):
+		"""
+		# Adjust the system.execution method for Python scripts and modules to inherit the
+		# path finder for the focus project.
+		"""
 		from fault.system import execution
 		from .bin import execute
 		prefix = [executable, '-m', execute.__name__]
@@ -59,7 +63,7 @@ class Probe(metrics.Probe):
 		# Install the meta path hook for loading instrumented bytecode.
 		"""
 
-		from f_telemetry.python import instrumentation as python_tm
+		from f_intention.python import instrumentation as python_tm
 		self.override()
 
 		try:
@@ -73,7 +77,7 @@ class Probe(metrics.Probe):
 			pickle.dump({}, f)
 
 		try:
-			from f_telemetry.python import instrumentation as python_tm
+			from f_intention.python import instrumentation as python_tm
 			m = directory / 'coverage.pickle'
 			data = collections.defaultdict(collections.Counter)
 			for counter in python_tm.counters.items():

@@ -88,7 +88,7 @@ def visit(node, parent=None, field=None, index=None, sequencing=source.sequence_
 
 initialization = """
 if True:
-	from f_telemetry.python import instrumentation as _fi_module
+	from f_intention.python import instrumentation as _fi_module
 	from functools import partial as _fi_partial
 	import collections as _fi_col
 	try:

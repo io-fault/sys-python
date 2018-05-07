@@ -25,7 +25,7 @@ def subprocess_bytecode_compiler(
 	inf, = inputs
 
 	optimize = '1'
-	if intention in ('debug', 'metrics', 'test'):
+	if intention in ('debug', 'instruments', 'injections'):
 		optimize = '0'
 
 	command = [None, filepath(output), filepath(inf), optimize]
@@ -49,7 +49,7 @@ def function_bytecode_compiler(
 	}
 
 	optimize = 1
-	if intention in ('debug', 'metrics', 'test'):
+	if intention in ('debug', 'instruments', 'injections'):
 		optimize = 0
 
 	command = [
@@ -62,7 +62,7 @@ def store(target, source, optimize, parameters=None):
 		parameters = {}
 
 	intention = parameters.pop('intention', 'debug')
-	if intention == 'metrics':
+	if intention == 'instruments':
 		from .. import instrumentation
 		compiler = instrumentation.compile
 		optimize = 0

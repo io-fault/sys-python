@@ -31,24 +31,6 @@ def add_delineate_mechanism(route:libroutes.File, tool_name:str):
 
 	return cc.update_named_mechanism(route, tool_name, delineate_template)
 
-def delineation(inv, fault, ctx, ctx_route, ctx_params):
-	"""
-	# Initialize the syntax tooling for delineation contexts.
-	"""
-	ctx_route = libroutes.File.from_absolute(inv.environ['CONTEXT'])
-
-	args = inv.args
-	mechanism_layer = {
-		'bytecode.python': {
-			'transformations': {
-				'python': delineate_template,
-			}
-		}
-	}
-
-	cc.update_named_mechanism(ctx_route / 'mechanisms' / 'intent.xml', tool_name, mechanism_layer)
-	return inv.exit(0)
-
 def instantiate_software(dst, package, name, template, type, fault='fault'):
 	# Initiialize llvm instrumentation or delineation tooling inside the target context.
 	ctxpy = dst / 'lib' / 'python'
@@ -60,7 +42,7 @@ def instantiate_software(dst, package, name, template, type, fault='fault'):
 		str(template), 'context', type,
 	]
 
-	print(command)
+	sys.stderr.write("-> %s\n" %(' '.join(command),))
 	pid, status, data = libsys.effect(libsys.KInvocation(sys.executable, command))
 	if status != 0:
 		sys.stderr.write("! ERROR: tool instantiation failed\n")
@@ -69,19 +51,33 @@ def instantiate_software(dst, package, name, template, type, fault='fault'):
 
 		sys.stderr.write("\t/message\n")
 		sys.stderr.buffer.writelines(b"\t\t" + x + b"\n" for x in data.split(b"\n"))
+		sys.stderr.write("<- [%d]\n" %(pid,))
 		raise SystemExit(1)
+	sys.stderr.write("<- [%d]\n" %(pid,))
 
-def metrics(inv, fault, ctx, ctx_route, ctx_params):
+def fragments(args, fault, ctx, ctx_route, ctx_params):
 	"""
-	# Initialize the instrumentation tooling for metrics contexts.
+	# Initialize the syntax tooling for delineation contexts.
 	"""
-	ctx_route = libroutes.File.from_absolute(inv.environ['CONTEXT'])
+
+	mechanism_layer = {
+		'bytecode.python': {
+			'transformations': {
+				'python': delineate_template,
+			}
+		}
+	}
+
+	cc.update_named_mechanism(ctx_route / 'mechanisms' / 'intent.xml', tool_name, mechanism_layer)
+
+def instruments(args, fault, ctx, ctx_route, ctx_params):
+	"""
+	# Initialize the instrumentation tooling for instruments contexts.
+	"""
 	mech = (ctx_route / 'mechanisms' / 'intent.xml')
 
-	args = inv.args
-
 	imp = libroutes.Import.from_fullname(__package__).container
-	instantiate_software(ctx_route, 'f_telemetry', tool_name, imp / 'templates', 'metrics')
+	instantiate_software(ctx_route, 'f_intention', tool_name, imp / 'templates', 'metrics')
 
 	mechanism_layer = {
 		'bytecode.python': {
@@ -100,8 +96,6 @@ def metrics(inv, fault, ctx, ctx_route, ctx_params):
 	tool_data_path = ctx_route / 'parameters' / 'tools' / (tool_name + '.xml')
 	cc.Parameters.store(tool_data_path, None, data)
 
-	return inv.exit(0)
-
 def main(inv:libsys.Invocation) -> libsys.Exit:
 	fault = inv.environ.get('FAULT_CONTEXT_NAME', 'fault')
 	ctx_route = libroutes.File.from_absolute(inv.environ['CONTEXT'])
@@ -109,13 +103,15 @@ def main(inv:libsys.Invocation) -> libsys.Exit:
 	ctx_params = ctx.parameters.load('context')[-1]
 	ctx_intention = ctx_params['intention']
 
-	if ctx_intention == 'metrics':
-		return metrics(inv, fault, ctx, ctx_route, ctx_params)
-	elif ctx_intention == 'delineation':
-		return delineation(inv, fault, ctx, ctx_route, ctx_params)
+	if ctx_intention == 'instruments':
+		return instruments(inv.args, fault, ctx, ctx_route, ctx_params)
+	elif ctx_intention == 'fragments':
+		return fragments(inv.args, fault, ctx, ctx_route, ctx_params)
 	else:
 		sys.stderr.write("! ERROR: unsupported context with %r intention\n" %(ctx_intention,))
 		return inv.exit(1)
+
+	return inv.exit(0)
 
 if __name__ == '__main__':
 	libsys.control(main, libsys.Invocation.system(environ=('FAULT_CONTEXT_NAME', 'CONTEXT')))
