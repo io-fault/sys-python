@@ -2,23 +2,21 @@
 	/protocol/
 		&<http://if.fault.io/project>
 
-/identity/
-	`http://fault.io/engineering/adapters/python
-/product/
-	`http://fault.io/engineering/`
+/identifier/
+	`http://fault.io/engineering/adapters.python`
 /name/
 	`python`
 /abstract/
-	`Python compilation, delineation, and coverage tools`
+	Python compilation, delineation, and coverage tools
 /icon/
 	- (emoji)`🐍`
+
 /versioning/
 	continuous
-/version/
-	&void
 /status/
 	flux
+
 /controller/
 	fault.io
 /contact/
-	&<http://fault.io/critical>
+	http://fault.io/critical
