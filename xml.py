@@ -719,7 +719,7 @@ class Context(object):
 			('xmlns', 'http://fault.io/xml/fragments'),
 			('xmlns:d', 'http://fault.io/xml/data'),
 			('xmlns:l', 'http://fault.io/xml/literals'),
-			('xmlns:txt', 'http://fault.io/xml/text'),
+			('xmlns:txt', 'http://if.fault.io/xml/text'),
 			('xmlns:xlink', 'http://www.w3.org/1999/xlink'),
 		)
 
