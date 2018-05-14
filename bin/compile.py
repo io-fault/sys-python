@@ -46,11 +46,14 @@ def function_bytecode_compiler(
 	params = {
 		'factor': build.factor.fullname,
 		'intention': intention,
+		'check': 'never',
 	}
 
 	optimize = 1
 	if intention in ('debug', 'instruments', 'injections'):
 		optimize = 0
+		if intention == 'debug':
+			params['check'] = 'time'
 
 	command = [
 		store, filepath(output), filepath(inf), optimize, params
@@ -61,6 +64,7 @@ def store(target, source, optimize, parameters=None):
 	if not parameters:
 		parameters = {}
 
+	check = parameters.pop('check', 'time')
 	intention = parameters.pop('intention', 'debug')
 	if intention == 'instruments':
 		from .. import instrumentation
@@ -75,9 +79,9 @@ def store(target, source, optimize, parameters=None):
 	]
 
 	with open(source) as f:
-		co = compiler(factor_name, f.read(), source, constants, optimize=optimize)
-		st = os.fstat(f.fileno())
-		bytecode.store(target, co, st.st_mtime, st.st_size)
+		source_file_contents = f.read()
+		co = compiler(factor_name, source_file_contents, source, constants, optimize=optimize)
+		bytecode.store(check, target, co, f.fileno(), source_file_contents)
 
 def main(inv:libsys.Invocation) -> libsys.Exit:
 	target, infile, *remainder = inv.args
