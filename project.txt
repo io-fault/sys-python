@@ -14,9 +14,9 @@
 /versioning/
 	continuous
 /status/
-	flux
+	volatile
 
 /controller/
 	fault.io
 /contact/
-	http://fault.io/critical
+	&<http://fault.io/critical>
