@@ -96,21 +96,23 @@ def instruments(args, fault, ctx, ctx_route, ctx_params):
 	tool_data_path = ctx_route / 'parameters' / 'tools' / (tool_name + '.xml')
 	cc.Parameters.store(tool_data_path, None, data)
 
+def install(args, fault, ctx, ctx_route, ctx_params):
+	"""
+	# Initialize the context for it's configured intention.
+	"""
+	ctx_intention = ctx_params['intention']
+
+	if ctx_intention == 'instruments':
+		instruments(args, fault, ctx, ctx_route, ctx_params)
+	elif ctx_intention == 'fragments':
+		fragments(args, fault, ctx, ctx_route, ctx_params)
+
 def main(inv:libsys.Invocation) -> libsys.Exit:
 	fault = inv.environ.get('FAULT_CONTEXT_NAME', 'fault')
 	ctx_route = libroutes.File.from_absolute(inv.environ['CONTEXT'])
 	ctx = cc.Context.from_directory(ctx_route)
 	ctx_params = ctx.parameters.load('context')[-1]
-	ctx_intention = ctx_params['intention']
-
-	if ctx_intention == 'instruments':
-		return instruments(inv.args, fault, ctx, ctx_route, ctx_params)
-	elif ctx_intention == 'fragments':
-		return fragments(inv.args, fault, ctx, ctx_route, ctx_params)
-	else:
-		sys.stderr.write("! ERROR: unsupported context with %r intention\n" %(ctx_intention,))
-		return inv.exit(1)
-
+	install(inv.args, fault, ctx, ctx_route, ctx_params)
 	return inv.exit(0)
 
 if __name__ == '__main__':
