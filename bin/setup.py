@@ -61,7 +61,7 @@ def fragments(args, fault, ctx, ctx_route, ctx_params):
 	"""
 
 	mechanism_layer = {
-		'bytecode.python': {
+		'factor': {
 			'transformations': {
 				'python': delineate_template,
 			}
@@ -80,7 +80,7 @@ def instruments(args, fault, ctx, ctx_route, ctx_params):
 	instantiate_software(ctx_route, 'f_intention', tool_name, imp / 'templates', 'metrics')
 
 	mechanism_layer = {
-		'bytecode.python': {
+		'factor': {
 			'transformations': {
 				'python': telemetry_layer,
 			}
