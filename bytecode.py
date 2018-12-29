@@ -10,6 +10,7 @@
 import os
 import types
 import importlib
+import marshal
 
 try:
 	from _imp import source_hash
@@ -38,16 +39,19 @@ def store(check:str, target:str, code:types.CodeType, fileno:int, source:bytes) 
 		# - `'hash'`
 	"""
 
-	if check in {None, 'time'} or local_source_hash is None:
-		stat = os.fstat(fileno)
-		method = (stat.st_mtime, stat.st_size)
-		data = serialize_timestamp_checked(code, *method)
-	elif check == 'hash':
-		method = local_source_hash(source)
-		data = _code_to_hash_pyc(code, method)
-	elif check == 'never':
-		method = local_source_hash(source)
-		data = _code_to_hash_pyc(code, method, checked=False)
+	method = None
+	if 0:
+		if check in {None, 'time'} or local_source_hash is None:
+			stat = os.fstat(fileno)
+			method = (stat.st_mtime, stat.st_size)
+			data = serialize_timestamp_checked(code, *method)
+		elif check == 'hash':
+			method = local_source_hash(source)
+			data = _code_to_hash_pyc(code, method)
+		elif check == 'never':
+			method = local_source_hash(source)
+			data = _code_to_hash_pyc(code, method, checked=False)
+	data = marshal.dumps(code)
 
 	with open(str(target), 'wb') as f:
 		f.write(data)

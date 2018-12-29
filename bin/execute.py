@@ -10,8 +10,9 @@ import contextlib
 import builtins
 import types
 
-from fault.system import library as libsys
-from fault.routes import library as libroutes
+from fault.system import process
+from fault.system import python
+from fault.system import files
 
 def prepare(exectype, path, execargs):
 	exits = contextlib.ExitStack()
@@ -26,13 +27,13 @@ def prepare(exectype, path, execargs):
 	telemetry = os.environ.get('FAULT_MEASUREMENT_CONTEXT', None)
 	if telemetry:
 		from kit.factors import metrics
-		route = libroutes.File.from_absolute(telemetry)
+		route = files.Path.from_absolute(telemetry)
 		measures = metrics.Measurements(route)
 		process_data = measures.event()
 		probelist = map(str.strip, os.environ['FAULT_METRICS_PROBES'].split(':'))
 		for probe_desc in filter(bool, probelist):
 			name, probe_ir = probe_desc.split('/')
-			probe = libroutes.Import.dereference(probe_ir)(name)
+			probe = python.Import.dereference(probe_ir)(name)
 			probe.reconnect(measures, process_data, finder)
 
 	module = types.ModuleType('__main__')
@@ -82,7 +83,7 @@ def prepare(exectype, path, execargs):
 
 	return exits, co, module
 
-def main(inv:libsys.Invocation) -> libsys.Exit:
+def main(inv:process.Invocation) -> process.Exit:
 	exectype, path, *execargs = inv.args # module <import> *args | script <filepath> *args
 
 	exits, co, module = prepare(exectype, path, execargs)
@@ -97,4 +98,4 @@ def main(inv:libsys.Invocation) -> libsys.Exit:
 	raise RuntimeError("module (%s) did not raise exit" %(path,))
 
 if __name__ == '__main__':
-	main(libsys.Invocation.system())
+	process.control(main, process.Invocation.system())

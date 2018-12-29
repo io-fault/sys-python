@@ -4,15 +4,18 @@
 # Provide high-level functions for compiling Python module into stored bytecode.
 """
 import os
-from fault.system import library as libsys
+
+from fault.system import process
 from fault.time import library as libtime
 
 from .. import module
 from .. import bytecode
 
 def subprocess_bytecode_compiler(
+		transform_mech,
 		build, adapter,
 		o_type, output, i_type, inputs,
+		partials, libraries,
 		verbose=True,
 		format=None,
 		filepath=str
@@ -21,8 +24,9 @@ def subprocess_bytecode_compiler(
 	# Command constructor for compiling Python bytecode to an arbitrary file.
 	# Executes in a distinct process.
 	"""
-	intention = context.intention(factor.domain)
-	inf, = inputs
+
+	intention = build.context.intention
+	inf, = inputs # Only supports one source file.
 
 	optimize = '1'
 	if intention in ('debug', 'instruments', 'injections'):
@@ -32,8 +36,11 @@ def subprocess_bytecode_compiler(
 	return command
 
 def function_bytecode_compiler(
+		transform_mech,
 		build, adapter,
-		o_type, output, i_type, inputs,
+		o_type, output,
+		i_type, inputs,
+		partials, libraries,
 		verbose=True, filepath=str
 	):
 	"""
@@ -41,10 +48,10 @@ def function_bytecode_compiler(
 	# Executes locally to minimize overhead.
 	"""
 
-	intention = build.context.intention(None)
-	inf, = inputs # One source file.
+	intention = build.context.intention
+	inf, = inputs # Only supports one source file.
 	params = {
-		'factor': build.factor.fullname,
+		'factor': build.factor.absolute_path_string,
 		'intention': intention,
 		'check': 'never',
 	}
@@ -55,9 +62,7 @@ def function_bytecode_compiler(
 		if intention == 'debug':
 			params['check'] = 'time'
 
-	command = [
-		store, filepath(output), filepath(inf), optimize, params
-	]
+	command = [store, filepath(output), filepath(inf), optimize, params]
 	return command
 
 def store(target, source, optimize, parameters=None):
@@ -83,7 +88,7 @@ def store(target, source, optimize, parameters=None):
 		co = compiler(factor_name, source_file_contents, source, constants, optimize=optimize)
 		bytecode.store(check, target, co, f.fileno(), source_file_contents)
 
-def main(inv:libsys.Invocation) -> libsys.Exit:
+def main(inv:process.Invocation) -> process.Exit:
 	target, infile, *remainder = inv.args
 
 	params = dict()
@@ -94,4 +99,6 @@ def main(inv:libsys.Invocation) -> libsys.Exit:
 	return inv.exit(0)
 
 if __name__ == '__main__':
-	libsys.control(main, libsys.Invocation.system())
+	import sys
+	sys.dont_write_bytecode = True
+	process.control(main, process.Invocation.system())

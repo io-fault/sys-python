@@ -1,9 +1,9 @@
 ! CONTEXT:
 	/protocol/
-		&<http://if.fault.io/project>
+		&<http://if.fault.io/project/information>
 
 /identifier/
-	`http://fault.io/engineering/adapters.python`
+	&<http://fault.io/engineering/adapters.python>
 /name/
 	`python`
 /abstract/
@@ -17,6 +17,6 @@
 	volatile
 
 /controller/
-	fault.io
+	`fault.io`
 /contact/
 	&<http://fault.io/critical>

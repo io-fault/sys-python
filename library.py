@@ -9,7 +9,6 @@ import itertools
 
 from ...factors import metrics
 
-from . import trace
 from . import instrumentation
 from . import source
 

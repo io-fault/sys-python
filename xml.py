@@ -1,7 +1,6 @@
 """
 # XML serialization for Python factors.
 """
-
 import sys
 import os
 import os.path
@@ -18,7 +17,9 @@ import typing
 import pickle
 
 from fault.system import libfactor
-from fault.routes import library as libroutes
+from fault.system import python
+from fault.system import files
+
 from fault.xml import library as libxml
 from fault.xml import python as xep
 from fault.text import library as libtext
@@ -72,7 +73,7 @@ class Context(object):
 	)
 
 	@staticmethod
-	def module_context(route:libroutes.Import):
+	def module_context(route:python.Import):
 		"""
 		# Given an import route, return the context package
 		# and the project module.
@@ -217,7 +218,7 @@ class Context(object):
 		return self.is_module(obj) or getmodule(obj) is not None
 
 	@functools.lru_cache(64)
-	def canonical(self, name:str, Import=libroutes.Import.from_fullname):
+	def canonical(self, name:str, Import=python.Import.from_fullname):
 		"""
 		# Given an arbitrary module name, rewrite it to use the canonical
 		# name defined by the package set (package of Python packages).
@@ -252,7 +253,7 @@ class Context(object):
 		if module == self.prefix or module.startswith(self.prefix+'.'):
 			pkgtype = 'context'
 		else:
-			m = libroutes.Import.from_fullname(module).module()
+			m = python.Import.from_fullname(module).module()
 			if 'site-packages' in getattr(m, '__file__', ''):
 				# *normally* distutils; likely from pypi
 				pkgtype = 'distutils'
@@ -262,7 +263,7 @@ class Context(object):
 		return pkgtype, module, path
 
 	@functools.lru_cache(32)
-	def project(self, module:types.ModuleType, _get_route = libroutes.Import.from_fullname):
+	def project(self, module:types.ModuleType, _get_route = python.Import.from_fullname):
 		"""
 		# Return the project information about a particular module.
 
@@ -521,7 +522,7 @@ class Context(object):
 	def d_module(self, factor_type, route, module, compressed=False):
 		lc = 0
 		ir = route
-		sources = [libroutes.File.from_absolute(module.__file__)]
+		sources = [files.Path.from_absolute(module.__file__)]
 
 		for route in sources:
 			if compressed:
@@ -725,7 +726,7 @@ class Context(object):
 
 if __name__ == '__main__':
 	# structure a single module
-	r = libroutes.Import.from_fullname(sys.argv[1])
+	r = python.Import.from_fullname(sys.argv[1])
 	w = sys.stdout.buffer.write
 	wl = sys.stdout.buffer.writelines
 	try:
