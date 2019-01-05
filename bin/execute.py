@@ -26,7 +26,7 @@ def prepare(exectype, path, execargs):
 
 	telemetry = os.environ.get('FAULT_MEASUREMENT_CONTEXT', None)
 	if telemetry:
-		from kit.factors import metrics
+		from sdk.factors import metrics
 		route = files.Path.from_absolute(telemetry)
 		measures = metrics.Measurements(route)
 		process_data = measures.event()

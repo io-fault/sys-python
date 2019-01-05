@@ -3,7 +3,7 @@
 		&<http://if.fault.io/project/information>
 
 /identifier/
-	&<http://fault.io/engineering/adapters.python>
+	&<http://fault.io/engineering/tools.python>
 /name/
 	`python`
 /abstract/

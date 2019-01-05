@@ -19,7 +19,7 @@ from fault.system import files
 
 def adjust_link_target(target, incorporation):
 	tid = target.identifier
-	return target.container / '__f_cache__' / incorporation / tid
+	return target.container / '__f-cache__' / incorporation / tid
 
 def adjust_bytecode_target(target, incorporation):
 	return adjust_link_target(target.container.container / target.identifier, incorporation)
