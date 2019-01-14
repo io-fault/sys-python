@@ -13,25 +13,11 @@ from fault.system import files
 from fault.system import python
 
 from ....factors import cc
+from ....factors import constructors
 from .. import parameters
 
 tool_name = 'python'
 name = 'fault.python'
-
-delineate_template = {
-	'command': __package__ + '.delineate',
-	'interface': cc.__name__ + '.package_module_parameter',
-	'method': 'python',
-	'name': 'delineate-python-source',
-	'redirect': 'stdout'
-}
-
-def add_delineate_mechanism(route, tool_name:str):
-	"""
-	# Add delineation mechanism.
-	"""
-
-	return cc.update_named_mechanism(route, tool_name, delineate_template)
 
 def instantiate_software(dst, package, name, template, type, fault='fault'):
 	# Initiialize llvm instrumentation or delineation tooling inside the target context.
@@ -78,7 +64,7 @@ def compilation(domain, system, architecture):
 			'transformations': {
 				'python': {
 					'type': 'transparent',
-					'interface': cc.__name__ + '.transparent',
+					'interface': constructors.__name__ + '.transparent',
 					'command': "/bin/ln",
 				},
 			},
@@ -108,20 +94,12 @@ def compilation(domain, system, architecture):
 		}
 	}
 
-def fragments(args, fault, ctx, ctx_route, ctx_params):
+def fragments(args, fault, ctx, ctx_route, ctx_params, domain):
 	"""
 	# Initialize the syntax tooling for delineation contexts.
 	"""
 
-	mechanism_layer = {
-		'factor': {
-			'transformations': {
-				'python': delineate_template,
-			}
-		}
-	}
-
-	cc.update_named_mechanism(ctx_route / 'mechanisms' / name, 'delineation', mechanism_layer)
+	raise NotImplementedError("AST generalization is not yet implemented")
 
 def instruments(args, fault, ctx, ctx_route, ctx_params, domain):
 	"""
