@@ -13,6 +13,7 @@ from fault.system import files
 from fault.system import python
 
 from ....factors import cc
+from ....factors import data as ccd
 from ....factors import constructors
 
 tool_name = 'python'
@@ -164,8 +165,8 @@ def install(args, fault, ctx, ctx_route, ctx_params):
 		data = fragments(args, fault, ctx, ctx_route, ctx_params)
 	else:
 		data = compilation(pydata['identifier'], host_system, pydata['tag'].replace('-','') + pydata['abi'])
-		cc.update_named_mechanism(mechfile, 'default', data)
-		cc.update_named_mechanism(mechfile, 'language-specifications', {
+		ccd.update_named_mechanism(mechfile, 'default', data)
+		ccd.update_named_mechanism(mechfile, 'language-specifications', {
 			'syntax': {
 				'target-file-extensions': {
 					'python': 'py',
@@ -175,11 +176,7 @@ def install(args, fault, ctx, ctx_route, ctx_params):
 
 		if ctx_intention == 'instruments':
 			layer = instruments(args, fault, ctx, ctx_route, ctx_params, pydata['identifier'])
-			cc.update_named_mechanism(mechfile, 'metrics', layer)
-
-	# Setup a Python extension symbol for Construction Context tools.
-	f = parameters.sysconfig_factors(parameters.identification(), domain='system')
-	(ctx_route / 'symbols' / 'context:python-extension').store(pickle.dumps(f))
+			ccd.update_named_mechanism(mechfile, 'metrics', layer)
 
 def main(inv:process.Invocation) -> process.Exit:
 	fault = inv.environ.get('FAULT_CONTEXT_NAME', 'fault')
