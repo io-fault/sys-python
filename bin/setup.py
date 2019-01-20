@@ -14,10 +14,33 @@ from fault.system import python
 
 from ....factors import cc
 from ....factors import constructors
-from .. import parameters
 
 tool_name = 'python'
 name = 'fault.python'
+
+def identification():
+	"""
+	# Collect the python reference parameter from the &sysconfig module.
+	"""
+
+	version = '.'.join(map(str, sys.version_info[:2]))
+	abi = sys.abiflags
+
+	cache_tag = getattr(sys.implementation, 'cache_tag')
+	if cache_tag is None:
+		cache_tag = sys.implementation.name + version.replace('.', '') + abi
+
+	triplet = cache_tag + abi + '-' + sys.platform
+
+	return {
+		'identifier': triplet,
+		'version': version,
+		'abi': abi,
+		'tag': cache_tag,
+		'implementation': sys.implementation.name,
+		'executable': sys.executable,
+		'extension-suffix': EXTENSION_SUFFIXES[0],
+	}
 
 def instantiate_software(dst, package, name, template, type, fault='fault'):
 	# Initiialize llvm instrumentation or delineation tooling inside the target context.
@@ -135,9 +158,7 @@ def install(args, fault, ctx, ctx_route, ctx_params):
 
 	mechfile = ctx_route / 'mechanisms' / name
 
-	pydata = parameters.identification()
-	sysfact = parameters.sysconfig_factors(pydata, domain='host')
-	pydata.update(sysfact)
+	pydata = identification()
 
 	if ctx_intention == 'fragments':
 		data = fragments(args, fault, ctx, ctx_route, ctx_params)
