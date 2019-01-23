@@ -7,7 +7,7 @@ import importlib
 import itertools
 import pickle
 
-from fault.system import library as libsys
+from fault.system import execution as libexec
 from fault.system import process
 from fault.system import files
 from fault.system import python
@@ -54,7 +54,7 @@ def instantiate_software(dst, package, name, template, type, fault='fault'):
 		str(template), type,
 	]
 
-	pid, status, data = libsys.effect(libsys.KInvocation(sys.executable, command))
+	pid, status, data = libexec.effect(libexec.KInvocation(sys.executable, command))
 	if status != 0:
 		sys.stderr.write("! ERROR: tool instantiation failed\n")
 		sys.stderr.write("\t/command/\n\t\t" + " ".join(command) + "\n")
