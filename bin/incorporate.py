@@ -47,6 +47,7 @@ def main(inv:process.Invocation) -> process.Exit:
 	"""
 	role, *factors = inv.args
 	env = os.environ
+	role = None
 
 	py_variants = dict(zip(['system', 'architecture'], identity.python_execution_context()))
 	os_variants = dict(zip(['system', 'architecture'], identity.root_execution_context()))
@@ -74,8 +75,13 @@ def main(inv:process.Invocation) -> process.Exit:
 				var = {'name': name}
 				var.update(py_variants)
 				segment = libproject.compose_integral_path(var)
+
 				i = (prefix * '__f-int__').extend(segment)
-				i = i.suffix('.%s.i' %(role,))
+				if role is not None:
+					i = i.suffix('.%s.i' %(role,))
+				else:
+					i = i.suffix('.i')
+
 				sys.stdout.write("[&. %s -> %s]\n" %(i, cache))
 				cache.link(i, relative=True)
 
@@ -90,8 +96,12 @@ def main(inv:process.Invocation) -> process.Exit:
 			var = {'name': fpath[-1]}
 			var.update(os_variants)
 			segment = libproject.compose_integral_path(var)
+
 			i = prefix.extend(segment)
-			i = i.suffix('.%s.i' %(role,))
+			if role is not None:
+				i = i.suffix('.%s.i' %(role,))
+			else:
+				i = i.suffix('.i')
 
 			del fpath[fpath.index('extensions')]
 			target = x.extend(fpath)
