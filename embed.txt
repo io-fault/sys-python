@@ -1,0 +1,293 @@
+[executable]
+
+C fragments providing a customized Python entry point. Desired in cases
+where applications need to control the environment to reduce the risk of initialization failures
+due to customized user sites and (system/envvar)`PYTHONPATH`.
+
+Two intiialization levels are available for configuration. The first is used for installing custom
+loaders and the second is for executing desired prerequisites for the primary entry point.
+
+/heading/#!/pl/c
+	#include <Python.h>
+	#include <sysexits.h>
+	#include <unistd.h>
+	#include <signal.h>
+
+	#ifdef __FreeBSD__
+		#include <fenv.h>
+	#endif
+
+	#ifdef _FAULT_INVOCATION
+		#include <fault/python/invocation.h>
+	#endif
+
+	#if PY_VERSION_HEX < 0x03050000
+		/* Renamed in 3.5+ */
+		#define Py_DecodeLocale _Py_char2wchar
+	#endif
+
+	#define _PREFIX(X,STRING) X##STRING
+	#define LSTR(STRING) _PREFIX(L,STRING)
+	#define log(category, message, ...) fprintf(stderr, "[!* " category ": " message "]\n", ##__VA_ARGS__)
+	#define panic() do {signal(SIGUSR2, SIG_DFL); kill(getpid(), SIGUSR2);} while(0)
+
+/initialize-application-context/#!/pl/c
+	/**
+		# Disable most environment based configuration.
+	*/
+	static void
+	initialize_context(void)
+	{
+		wchar_t **wargv;
+
+		/**
+			# The python.org binary conditionally runs this on FreeBSD.
+			# Arguably, it should be a no-op on any platform if it's already off.
+		*/
+		#ifdef __FreeBSD__
+			fedisableexcept(FE_OVERFLOW);
+		#endif
+
+		/**
+			# Presume user site might interfere with the application.
+			# Application can activate it in an initializer if it's desired.
+		*/
+		Py_NoUserSiteDirectory = 1;
+
+		/**
+			# Application Context settings.
+		*/
+		Py_IgnoreEnvironmentFlag = 1;
+		Py_DebugFlag = 0;
+		Py_BytesWarningFlag = 2;
+		Py_IsolatedFlag = 1;
+
+		/**
+			# Avoid implicit side effects; even generally accepted ones.
+		*/
+		Py_DontWriteBytecodeFlag = 1;
+	}
+
+/allocate/#!/pl/c
+	/**
+		# Allocate and convert system arguments for loading sys.argv as bin/python would.
+	*/
+	static wchar_t **
+	aalloc(int argc, char *argv[])
+	{
+		int r;
+		size_t nbytes;
+		wchar_t **wargv;
+
+		nbytes = sizeof(wchar_t *) * (argc+1);
+		wargv = PyMem_RawMalloc(nbytes);
+		if (wargv == NULL)
+		{
+			log("ERROR", "could not allocate %zd bytes of memory for system arguments", nbytes);
+			return(NULL);
+		}
+
+		for (r = 0; r < argc; ++r)
+		{
+			wargv[r] = Py_DecodeLocale(argv[r], NULL);
+			if (wargv[r] == NULL)
+			{
+				log("ERROR", "could not decode system arguments for application");
+				return(NULL);
+			}
+		}
+
+		return(wargv);
+	}
+
+/main-open/#!/pl/c
+	static wchar_t executable_path[] = LSTR(PYTHON_EXECUTABLE_PATH);
+	int
+	main(int argc, char *argv[])
+	{
+
+/main/#!/pl/c
+	/**
+		# SIGUSR1 is used to signal initialization or bootstrap exceptions.
+		# SIGUSR2 is used to designate that a python initialization error occurred.
+		# EX_SOFTWARE is returned, but usually unreachable as panic() causes a signal exit.
+	*/
+
+	int r, nbytes;
+	wchar_t **wargv;
+	PyObject *ob, *mod;
+
+	initialize_context();
+	wargv = aalloc(argc, argv);
+	if (wargv == NULL)
+	{
+		panic();
+		return(EX_SOFTWARE);
+	}
+
+	/*
+		# sys.executable explicitly configured by the binding.
+		# Normally this should point to the Python executable within the installation prefix.
+	*/
+	Py_SetProgramName(executable_path);
+
+	#ifdef PYTHON_PATH
+		/*
+			# Hardcoded at compile time. Relocating/removing the dependency requires
+			# the executable to be rebuilt.
+		*/
+		Py_SetPath(PYTHON_PATH_STR);
+	#endif
+
+	Py_Initialize();
+	if (!Py_IsInitialized())
+	{
+		log("ERROR", "could not initialize python");
+		panic();
+		return(EX_SOFTWARE);
+	}
+
+	PySys_SetArgvEx(argc, wargv, 0);
+
+	PyEval_InitThreads();
+	if (!PyEval_ThreadsInitialized())
+	{
+		log("ERROR", "could not initialize threading");
+		panic();
+		return(EX_SOFTWARE);
+	}
+
+	ob = PySys_GetObject("path");
+	if (ob == NULL)
+	{
+		log("ERROR", "could not initialize execution context");
+		panic();
+		return(EX_SOFTWARE);
+	}
+
+	mod = PyImport_ImportModule(TARGET_MODULE);
+	if (mod == NULL)
+	{
+		log("ERROR", "could not import application module: " TARGET_MODULE);
+		panic();
+		return(EX_SOFTWARE);
+	}
+	else
+		Py_DECREF(mod);
+
+	#ifdef PYTHON_INITIALIZERS
+	{
+		PyObject *init_exit_object = NULL;
+
+		#define INIT_PYTHON(x) \
+			init_exit_object = PyObject_CallMethod(mod, x, ""); \
+			if (init_exit_object == NULL) { \
+				log("ERROR", "configured initializer raised exception"); \
+				PyErr_Print(); \
+				fflush(stderr); \
+				kill(getpid(), SIGUSR1); \
+				return(EX_SOFTWARE); \
+			} \
+			else \
+				Py_DECREF(init_exit_object);
+
+			PYTHON_INITIALIZERS()
+		#undef INIT_PYTHON
+	}
+	#endif
+
+	/**
+		# Main execution. Calls DEFAULT_ENTRY_POINT in TARGET_MODULE.
+		# For fault invocations, a &fault.system.process.Invocation instance
+		# is created and passed to main.
+	*/
+	{
+		#ifdef _FAULT_INVOCATION
+			PyObject *_f_process = NULL;
+			PyObject *_f_sysinv = NULL;
+			PyObject *_f_main = NULL;
+
+			_f_main = PyObject_GetAttrString(mod, DEFAULT_ENTRY_POINT);
+			if (_f_main == NULL)
+			{
+				log("ERROR", "could not get entry point from application module: " DEFAULT_ENTRY_POINT);
+				panic();
+				return(EX_SOFTWARE);
+			}
+			_f_sysinv = _fault_system_invocation(&_f_process);
+
+			if (_f_sysinv == NULL)
+			{
+				log("ERROR", "could not create Invocation instance");
+				panic();
+				return(EX_SOFTWARE);
+			}
+			ob = PyObject_CallMethod(_f_process, "control", "OO", _f_main, _f_sysinv);
+
+			Py_DECREF(_f_process);
+			Py_DECREF(_f_main);
+			Py_DECREF(_f_sysinv);
+		#else
+			ob = PyObject_CallMethod(mod, DEFAULT_ENTRY_POINT, "");
+		#endif
+	}
+
+	r = EX_SOFTWARE;
+
+	if (ob != NULL)
+	{
+		/*
+			# As an alternative, entry points may choose to return
+			# the exit status directly. However, SystemExit is supported as well.
+		*/
+
+		if (ob == Py_None)
+		{
+			r = EX_OK;
+		}
+		else if (PyLong_Check(ob))
+		{
+			r = (int) PyLong_AsLong(ob);
+		}
+
+		Py_DECREF(ob);
+		ob = NULL;
+	}
+	else
+	{
+		if (PyErr_ExceptionMatches(PyExc_SystemExit))
+		{
+			PyObject *exc, *val, *tb;
+			PyErr_Fetch(&exc, &val, &tb);
+			PyObject *pi;
+
+			if (val)
+			{
+				pi = PyObject_GetAttrString(val, "code");
+				if (pi)
+				{
+					r = (int) PyLong_AsLong(pi);
+					Py_DECREF(pi);
+				}
+			}
+
+			Py_DECREF(exc);
+			Py_XDECREF(val);
+			Py_XDECREF(tb);
+
+			PyErr_Clear();
+		}
+		else
+		{
+			log("ERROR", "application raised exception");
+			PyErr_Print();
+			fflush(stderr);
+			r = EX_SOFTWARE;
+		}
+	}
+
+	Py_Exit(r);
+	return(r);
+
+/main-close/#!/pl/c
+	}
