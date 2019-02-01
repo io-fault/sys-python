@@ -31,6 +31,10 @@ loaders and the second is for executing desired prerequisites for the primary en
 	#define log(category, message, ...) fprintf(stderr, "[!* " category ": " message "]\n", ##__VA_ARGS__)
 	#define panic() do {signal(SIGUSR2, SIG_DFL); kill(getpid(), SIGUSR2);} while(0)
 
+	#ifndef OPTION_ACTIVATION_SYMBOL
+		#define OPTION_ACTIVATION_SYMBOL "activate"
+	#endif
+
 /initialize-application-context/#!/pl/c
 	/**
 		# Disable most environment based configuration.
@@ -136,7 +140,7 @@ loaders and the second is for executing desired prerequisites for the primary en
 			# Hardcoded at compile time. Relocating/removing the dependency requires
 			# the executable to be rebuilt.
 		*/
-		Py_SetPath(PYTHON_PATH_STR);
+		Py_SetPath(LSTR(PYTHON_PATH_STR));
 	#endif
 
 	Py_Initialize();
@@ -165,6 +169,37 @@ loaders and the second is for executing desired prerequisites for the primary en
 		return(EX_SOFTWARE);
 	}
 
+	#ifdef PYTHON_OPTION_MODULES
+	{
+		PyObject *init_exit_object = NULL;
+		PyObject *option_module = NULL;
+
+		#define INIT_PYTHON_OPTION(x) \
+			option_module = PyImport_ImportModule(x); \
+			if (option_module == NULL) { \
+				log("ERROR", "could not import option module"); \
+				PyErr_Print(); \
+				fflush(stderr); \
+				panic(); \
+				return(EX_SOFTWARE); \
+			} \
+			init_exit_object = PyObject_CallMethod(option_module, OPTION_ACTIVATION_SYMBOL, ""); \
+			Py_DECREF(option_module); \
+			if (init_exit_object == NULL) { \
+				log("ERROR", "option module (%s) activation raised exception", x); \
+				PyErr_Print(); \
+				fflush(stderr); \
+				panic(); \
+				return(EX_SOFTWARE); \
+			} \
+			else \
+				Py_DECREF(init_exit_object);
+
+			PYTHON_OPTION_MODULES;
+		#undef INIT_PYTHON_OPTION
+	}
+	#endif
+
 	mod = PyImport_ImportModule(TARGET_MODULE);
 	if (mod == NULL)
 	{
@@ -174,27 +209,6 @@ loaders and the second is for executing desired prerequisites for the primary en
 	}
 	else
 		Py_DECREF(mod);
-
-	#ifdef PYTHON_INITIALIZERS
-	{
-		PyObject *init_exit_object = NULL;
-
-		#define INIT_PYTHON(x) \
-			init_exit_object = PyObject_CallMethod(mod, x, ""); \
-			if (init_exit_object == NULL) { \
-				log("ERROR", "configured initializer raised exception"); \
-				PyErr_Print(); \
-				fflush(stderr); \
-				kill(getpid(), SIGUSR1); \
-				return(EX_SOFTWARE); \
-			} \
-			else \
-				Py_DECREF(init_exit_object);
-
-			PYTHON_INITIALIZERS()
-		#undef INIT_PYTHON
-	}
-	#endif
 
 	/**
 		# Main execution. Calls DEFAULT_ENTRY_POINT in TARGET_MODULE.
