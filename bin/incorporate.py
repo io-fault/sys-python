@@ -9,6 +9,7 @@
 """
 import os
 import sys
+import marshal
 
 from fault.project import library as libproject
 from fault.project import explicit
@@ -17,6 +18,8 @@ from fault.system import process
 from fault.system import python
 from fault.system import files
 from fault.system import identity
+
+from ...tools.python.bytecode import serialize_timestamp_checked
 
 try:
 	import importlib.util
@@ -45,9 +48,8 @@ def main(inv:process.Invocation) -> process.Exit:
 	"""
 	# Incorporate the constructed targets.
 	"""
-	role, *factors = inv.args
+	intention, *factors = inv.args
 	env = os.environ
-	role = None
 
 	py_variants = dict(zip(['system', 'architecture'], identity.python_execution_context()))
 	os_variants = dict(zip(['system', 'architecture'], identity.root_execution_context()))
@@ -76,14 +78,25 @@ def main(inv:process.Invocation) -> process.Exit:
 				var.update(py_variants)
 				segment = libproject.compose_integral_path(var)
 
-				i = (prefix * '__f-int__').extend(segment)
-				if role is not None:
-					i = i.suffix('.%s.i' %(role,))
+				i = (src * '__f-int__').extend(segment)
+				if intention is not None:
+					i = i.suffix('.%s.i' %(intention,))
 				else:
 					i = i.suffix('.i')
 
-				sys.stdout.write("[&. %s -> %s]\n" %(i, cache))
-				cache.link(i, relative=True)
+				if not i.exists():
+					continue
+
+				sys.stdout.write("[*! %s -> %s]\n" %(i, cache))
+				if cache.exists():
+					os.unlink(str(cache))
+
+				stat = os.stat(str(src))
+				try:
+					code = marshal.loads(i.load())
+					cache.store(serialize_timestamp_checked(code, stat.st_mtime, stat.st_size))
+				except ValueError:
+					pass
 
 		for fpath, data in composites.items():
 			if 'extensions' not in fpath:
@@ -98,8 +111,8 @@ def main(inv:process.Invocation) -> process.Exit:
 			segment = libproject.compose_integral_path(var)
 
 			i = prefix.extend(segment)
-			if role is not None:
-				i = i.suffix('.%s.i' %(role,))
+			if intention is not None:
+				i = i.suffix('.%s.i' %(intention,))
 			else:
 				i = i.suffix('.i')
 
