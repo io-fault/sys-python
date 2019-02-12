@@ -9,7 +9,7 @@
 /abstract/
 	Python compilation, delineation, and coverage tools
 /icon/
-	- (emoji)`🐍`
+	- (emoji)`🔧`
 
 /versioning/
 	continuous
