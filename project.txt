@@ -9,7 +9,7 @@
 /abstract/
 	Interfaces and tools for developing Python extension modules in a sdk.fault.io environment.
 /icon/
-	- (emoji)`🛠`
+	- (emoji)`🐍`
 
 /versioning/
 	continuous
