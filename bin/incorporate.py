@@ -124,8 +124,11 @@ def main(inv:process.Invocation) -> process.Exit:
 			if not target.container.exists():
 				target.container.init('directory')
 
-			sys.stdout.write("[&. %s -> %s]\n" %(i, export))
-			export.link(i, relative=True)
+			if not i.exists():
+				sys.stdout.write("[!# expected target (%s) for '%s' does not exist]\n" %(i, export))
+			else:
+				sys.stdout.write("[&. %s -> %s]\n" %(i, export))
+				export.link(i, relative=True)
 
 	return inv.exit(0)
 
