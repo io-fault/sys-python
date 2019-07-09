@@ -50,7 +50,8 @@ def store(check:str, target:str, code:types.CodeType, fileno:int, source:bytes) 
 		elif check == 'never':
 			method = local_source_hash(source)
 			data = _code_to_hash_pyc(code, method, checked=False)
-	data = marshal.dumps(code)
+	else:
+		data = marshal.dumps(code)
 
 	with open(str(target), 'wb') as f:
 		f.write(data)
