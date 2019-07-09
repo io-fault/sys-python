@@ -6,7 +6,7 @@
 import os
 
 from fault.system import process
-from fault.time import library as libtime
+from fault.time import sysclock
 
 from .. import module
 from .. import bytecode
@@ -80,7 +80,7 @@ def store(target, source, optimize, parameters=None):
 
 	factor_name = parameters.pop('factor', None)
 	constants = [
-		('__timestamp__', int(libtime.now())),
+		('__timestamp__', int(sysclock.now())),
 	]
 
 	with open(source) as f:
