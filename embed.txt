@@ -37,7 +37,7 @@ loaders and the second is for executing desired prerequisites for the primary en
 
 /initialize-application-context/#!/pl/c
 	/**
-		# Disable most environment based configuration.
+		// Disable most environment based configuration.
 	*/
 	static void
 	initialize_context(void)
@@ -45,21 +45,21 @@ loaders and the second is for executing desired prerequisites for the primary en
 		wchar_t **wargv;
 
 		/**
-			# The python.org binary conditionally runs this on FreeBSD.
-			# Arguably, it should be a no-op on any platform if it's already off.
+			// The python.org binary conditionally runs this on FreeBSD.
+			// Arguably, it should be a no-op on any platform if it's already off.
 		*/
 		#ifdef __FreeBSD__
 			fedisableexcept(FE_OVERFLOW);
 		#endif
 
 		/**
-			# Presume user site might interfere with the application.
-			# Application can activate it in an initializer if it's desired.
+			// Presume user site might interfere with the application.
+			// Application can activate it in an initializer if it's desired.
 		*/
 		Py_NoUserSiteDirectory = 1;
 
 		/**
-			# Application Context settings.
+			// Application Context settings.
 		*/
 		Py_IgnoreEnvironmentFlag = 1;
 		Py_DebugFlag = 0;
@@ -67,14 +67,14 @@ loaders and the second is for executing desired prerequisites for the primary en
 		Py_IsolatedFlag = 1;
 
 		/**
-			# Avoid implicit side effects; even generally accepted ones.
+			// Avoid implicit side effects; even generally accepted ones.
 		*/
 		Py_DontWriteBytecodeFlag = 1;
 	}
 
 /allocate/#!/pl/c
 	/**
-		# Allocate and convert system arguments for loading sys.argv as bin/python would.
+		// Allocate and convert system arguments for loading sys.argv as bin/python would.
 	*/
 	static wchar_t **
 	aalloc(int argc, char *argv[])
@@ -112,9 +112,9 @@ loaders and the second is for executing desired prerequisites for the primary en
 
 /main/#!/pl/c
 	/**
-		# SIGUSR1 is used to signal initialization or bootstrap exceptions.
-		# SIGUSR2 is used to designate that a python initialization error occurred.
-		# EX_SOFTWARE is returned, but usually unreachable as panic() causes a signal exit.
+		// SIGUSR1 is used to signal initialization or bootstrap exceptions.
+		// SIGUSR2 is used to designate that a python initialization error occurred.
+		// EX_SOFTWARE is returned, but usually unreachable as panic() causes a signal exit.
 	*/
 
 	int r, nbytes;
@@ -130,15 +130,15 @@ loaders and the second is for executing desired prerequisites for the primary en
 	}
 
 	/*
-		# sys.executable explicitly configured by the binding.
-		# Normally this should point to the Python executable within the installation prefix.
+		// sys.executable explicitly configured by the binding.
+		// Normally this should point to the Python executable within the installation prefix.
 	*/
 	Py_SetProgramName(executable_path);
 
 	#ifdef PYTHON_PATH
 		/*
-			# Hardcoded at compile time. Relocating/removing the dependency requires
-			# the executable to be rebuilt.
+			// Hardcoded at compile time. Relocating/removing the dependency requires
+			// the executable to be rebuilt.
 		*/
 		Py_SetPath(LSTR(PYTHON_PATH_STR));
 	#endif
@@ -211,9 +211,9 @@ loaders and the second is for executing desired prerequisites for the primary en
 		Py_DECREF(mod);
 
 	/**
-		# Main execution. Calls DEFAULT_ENTRY_POINT in TARGET_MODULE.
-		# For fault invocations, a &fault.system.process.Invocation instance
-		# is created and passed to main.
+		// Main execution. Calls DEFAULT_ENTRY_POINT in TARGET_MODULE.
+		// For fault invocations, a &fault.system.process.Invocation instance
+		// is created and passed to main.
 	*/
 	{
 		#ifdef _FAULT_INVOCATION
@@ -251,8 +251,8 @@ loaders and the second is for executing desired prerequisites for the primary en
 	if (ob != NULL)
 	{
 		/*
-			# As an alternative, entry points may choose to return
-			# the exit status directly. However, SystemExit is supported as well.
+			// As an alternative, entry points may choose to return
+			// the exit status directly. However, SystemExit is supported as well.
 		*/
 
 		if (ob == Py_None)
