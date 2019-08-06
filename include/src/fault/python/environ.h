@@ -61,7 +61,6 @@ PyImport_ImportAdjacent(const char *modname, const char *attribute)
 
 	return(is_ob);
 }
-#define import_sibling PyImport_ImportAdjacent
 
 #define _PyLoop_NULL_INJECTION() ;
 #define PyLoop_ITEM _ITEM
