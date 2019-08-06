@@ -87,7 +87,7 @@ def main(inv:process.Invocation) -> process.Exit:
 				if not i.exists():
 					continue
 
-				sys.stdout.write("[*! %s -> %s]\n" %(i, cache))
+				sys.stdout.write("[*| %s -> %s]\n" %(i, cache))
 				if cache.exists():
 					os.unlink(str(cache))
 
@@ -127,7 +127,7 @@ def main(inv:process.Invocation) -> process.Exit:
 			if not i.exists():
 				sys.stdout.write("[!# expected target (%s) for '%s' does not exist]\n" %(i, export))
 			else:
-				sys.stdout.write("[&. %s -> %s]\n" %(i, export))
+				sys.stdout.write("[&| %s -> %s]\n" %(i, export))
 				export.link(i, relative=True)
 
 	return inv.exit(0)
