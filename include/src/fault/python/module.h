@@ -91,11 +91,49 @@ do { \
 #define _py_INIT_FUNC_X(BN) CONCAT_IDENTIFIER(PyInit_, BN)
 #define _py_INIT_FUNC _py_INIT_FUNC_X(FACTOR_BASENAME)
 
-#if PY_MAJOR_VERSION > 2
+#if PY_MAJOR_VERSION < 3
 /*
-	# Python 3.x
+	# Python 2.x
 */
-#define INIT(DOCUMENTATION) \
+#define _py_INIT_COMPAT CONCAT_IDENTIFIER(init, FACTOR_BASENAME)
+
+/**
+	# Invoke the new signature.
+	# Allows the user to return(NULL) regardless of Python version.
+*/
+#define INIT(MODPARAM, DOCUMENTATION) \
+	DEFINE_MODULE_GLOBALS \
+	static PyMethodDef methods[] = { \
+		FAULT_MODULE_FUNCTIONS() \
+		MODULE_FUNCTIONS() \
+		{NULL,} \
+	}; \
+	static PyObject * _py_INIT_FUNC(void); \
+	_fault_reveal_symbol PyMODINIT_FUNC _py_INIT_COMPAT(void) \
+	{ \
+		PyObj _MOD = Py_InitModule(PYTHON_MODULE_PATH_STR, methods); \
+		if (_MOD) { \
+			__dict__ = PyModule_GetDict(_MOD); \
+			if (__dict__ == NULL) { DROP_MODULE(_MOD); return(-1); } \
+			INIT_MODULE_GLOBALS(); \
+			if (PyErr_Occurred()) { DROP_MODULE(_MOD); return(-1); } \
+			else { \
+				if (_py_INIT_FUNC(_MOD) != 0) \
+				{ \
+					DROP_MODULE(_MOD); \
+					return(NULL); \
+				} \
+			} \
+		} \
+	} \
+	static int _py_INIT_FUNC(PyObj MODPARAM)
+
+#elif !defined(Py_mod_exec)
+
+/*
+	# Python 3.x without mod_exec
+*/
+#define INIT(MODPARAM, DOCUMENTATION) \
 	DEFINE_MODULE_GLOBALS \
 	static PyMethodDef methods[] = { \
 		FAULT_MODULE_FUNCTIONS() \
@@ -104,20 +142,34 @@ do { \
 	}; \
 	\
 	static struct PyModuleDef \
-	module = { \
+	module_definition = { \
 		PyModuleDef_HEAD_INIT, \
 		PYTHON_MODULE_PATH_STR, \
 		DOCUMENTATION, \
 		-1, \
-		methods \
+		methods, \
+		NULL, \
 	}; \
 	\
+	static int _module_exec(PyObj MODPARAM); \
 	_fault_reveal_symbol PyMODINIT_FUNC \
-	_py_INIT_FUNC(void)
+	_py_INIT_FUNC(void) \
+	{ \
+		PyObj m = NULL; \
+		_CREATE_MODULE(&m); \
+		if (m == NULL) return(NULL); \
+		if (_module_exec(m) != 0) \
+		{ \
+			DROP_MODULE(m); \
+			return(NULL); \
+		} \
+		return(m); \
+	} \
+	static int _module_exec(PyObj MODPARAM)
 
-#define CREATE_MODULE(MOD) \
+#define _CREATE_MODULE(MOD) \
 do { \
-	PyObj _MOD = PyModule_Create(&module); \
+	PyObj _MOD = PyModule_Create(&module_definition); \
 	if (_MOD == NULL) \
 		*MOD = NULL; /* error */ \
 	else \
@@ -143,35 +195,47 @@ do { \
 		} \
 	} \
 } while(0)
-#else
-/*
-	# Python 2.x
-*/
-#define _py_INIT_COMPAT CONCAT_IDENTIFIER(init, FACTOR_BASENAME)
 
-/**
-	# Invoke the new signature.
-	# Allows the user to return(NULL) regardless of Python version.
+#else
+
+/*
+	// Multi-phase Initialization
 */
-#define INIT(DOCUMENTATION) \
+#define INIT(MODPARAM, DOCUMENTATION) \
 	DEFINE_MODULE_GLOBALS \
 	static PyMethodDef methods[] = { \
 		FAULT_MODULE_FUNCTIONS() \
 		MODULE_FUNCTIONS() \
 		{NULL,} \
 	}; \
-	static PyObject * _py_INIT_FUNC(void); /* prototype */ \
-	_fault_reveal_symbol PyMODINIT_FUNC _py_INIT_COMPAT(void) \
-	{ PyObj mod; mod = _py_INIT_FUNC(); /* for consistent return() signature */ } \
-	static PyObject * _py_INIT_FUNC(void)
-
-#define CREATE_MODULE(MOD) \
-	do { \
-		PyObj _MOD = Py_InitModule(PYTHON_MODULE_PATH_STR, methods); \
-		if (_MOD) { \
-			__dict__ = PyModule_GetDict(_MOD); \
-			if (__dict__ == NULL) { Py_DECREF(_MOD); *MOD = NULL; } \
-			else *MOD = _MOD; \
-		} \
-	} while(0)
+	\
+	static int _module_exec(PyObj); \
+	static int module_exec(PyObj mod) \
+	{ \
+		INIT_MODULE_GLOBALS(); \
+		return _module_exec(mod); \
+	} \
+	static PyModuleDef_Slot module_slots[] = { \
+		{Py_mod_exec, module_exec}, \
+		{0, NULL} \
+	}; \
+	\
+	static struct PyModuleDef \
+	module_definition = { \
+		PyModuleDef_HEAD_INIT, \
+		PYTHON_MODULE_PATH_STR, \
+		DOCUMENTATION, \
+		0, \
+		methods, \
+		module_slots, \
+		NULL, \
+		NULL, \
+		NULL, \
+	}; \
+	\
+	_fault_reveal_symbol PyMODINIT_FUNC \
+	_py_INIT_FUNC(void) { \
+		return(PyModuleDef_Init(&module_definition)); \
+	} \
+	static int _module_exec(PyObj MODPARAM)
 #endif
