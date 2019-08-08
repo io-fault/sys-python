@@ -70,9 +70,7 @@
 			PyDict_SetItemString(__dict__, "__PYTHON_RECEPTACLE__", __PYTHON_RECEPTACLE__); \
 		}
 #else
-	#define DEFINE_MODULE_GLOBALS \
-		PyObj __dict__ = NULL;
-
+	#define DEFINE_MODULE_GLOBALS
 	/* Nothing without TEST || METRICS */
 	#define INIT_MODULE_GLOBALS() ;
 	#define DROP_MODULE_GLOBALS() ;
