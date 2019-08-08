@@ -101,7 +101,7 @@ do { \
 	# Invoke the new signature.
 	# Allows the user to return(NULL) regardless of Python version.
 */
-#define INIT(MODPARAM, DOCUMENTATION) \
+#define INIT(MODPARAM, STATE_SIZE, DOCUMENTATION) \
 	DEFINE_MODULE_GLOBALS \
 	static PyMethodDef methods[] = { \
 		FAULT_MODULE_FUNCTIONS() \
@@ -133,7 +133,7 @@ do { \
 /*
 	# Python 3.x without mod_exec
 */
-#define INIT(MODPARAM, DOCUMENTATION) \
+#define INIT(MODPARAM, STATE_SIZE, DOCUMENTATION) \
 	DEFINE_MODULE_GLOBALS \
 	static PyMethodDef methods[] = { \
 		FAULT_MODULE_FUNCTIONS() \
@@ -146,7 +146,7 @@ do { \
 		PyModuleDef_HEAD_INIT, \
 		PYTHON_MODULE_PATH_STR, \
 		DOCUMENTATION, \
-		-1, \
+		STATE_SIZE, \
 		methods, \
 		NULL, \
 	}; \
@@ -201,7 +201,7 @@ do { \
 /*
 	// Multi-phase Initialization
 */
-#define INIT(MODPARAM, DOCUMENTATION) \
+#define INIT(MODPARAM, STATE_SIZE, DOCUMENTATION) \
 	DEFINE_MODULE_GLOBALS \
 	static PyMethodDef methods[] = { \
 		FAULT_MODULE_FUNCTIONS() \
@@ -225,7 +225,7 @@ do { \
 		PyModuleDef_HEAD_INIT, \
 		PYTHON_MODULE_PATH_STR, \
 		DOCUMENTATION, \
-		0, \
+		STATE_SIZE, \
 		methods, \
 		module_slots, \
 		NULL, \
