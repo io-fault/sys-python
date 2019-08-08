@@ -47,16 +47,6 @@
 	#define FAULT_MODULE_FUNCTIONS()
 #endif
 
-/**
-	# Used to destroy the module in error cases.
-	# This clears the global __dict__ as well.
-*/
-#define DROP_MODULE(MOD) \
-do { \
-	Py_DECREF(MOD); \
-	__dict__ = NULL; \
-} while(0)
-
 #if FV_INJECTIONS()
 	#define DEFINE_MODULE_GLOBALS \
 		PyObj __ERRNO_RECEPTACLE__; \
@@ -114,13 +104,13 @@ do { \
 		PyObj _MOD = Py_InitModule(PYTHON_MODULE_PATH_STR, methods); \
 		if (_MOD) { \
 			__dict__ = PyModule_GetDict(_MOD); \
-			if (__dict__ == NULL) { DROP_MODULE(_MOD); return(-1); } \
+			if (__dict__ == NULL) { Py_DECREF(_MOD); return(-1); } \
 			INIT_MODULE_GLOBALS(); \
-			if (PyErr_Occurred()) { DROP_MODULE(_MOD); return(-1); } \
+			if (PyErr_Occurred()) { Py_DECREF(_MOD); return(-1); } \
 			else { \
 				if (_py_INIT_FUNC(_MOD) != 0) \
 				{ \
-					DROP_MODULE(_MOD); \
+					Py_DECREF(_MOD); \
 					return(NULL); \
 				} \
 			} \
@@ -160,7 +150,7 @@ do { \
 		if (m == NULL) return(NULL); \
 		if (_module_exec(m) != 0) \
 		{ \
-			DROP_MODULE(m); \
+			Py_DECREF(m); \
 			return(NULL); \
 		} \
 		return(m); \
