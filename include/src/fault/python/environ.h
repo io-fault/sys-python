@@ -42,7 +42,7 @@ _PyLoop_DictionaryItems(PyObj d)
 extern PyObj __dict__;
 
 static inline PyObj
-PyImport_ImportAdjacent(const char *modname, const char *attribute)
+PyImport_ImportAdjacentEx(PyObj module, const char *modname, const char *attribute)
 {
 	PyObj is_m, is_ob, is_fromlist;
 
@@ -50,7 +50,9 @@ PyImport_ImportAdjacent(const char *modname, const char *attribute)
 	if (is_fromlist == NULL)
 		return(NULL);
 
-   is_m = PyImport_ImportModuleLevel(modname, __dict__, __dict__, is_fromlist, 1);
+	is_m = PyImport_ImportModuleLevel(modname,
+		PyModule_GetDict(module), PyModule_GetDict(module),
+		is_fromlist, 1);
 
 	Py_DECREF(is_fromlist);
 	if (is_m == NULL)
@@ -60,6 +62,16 @@ PyImport_ImportAdjacent(const char *modname, const char *attribute)
 	Py_DECREF(is_m);
 
 	return(is_ob);
+}
+
+static inline PyObj
+PyImport_ImportAdjacent(const char *modname, const char *attribute)
+{
+	PyObj ia_module = PyImport_ImportModule(PYTHON_MODULE_PATH_STR);
+	if (ia_module == NULL)
+		return(NULL);
+
+	return(PyImport_ImportAdjacentEx(ia_module, modname, attribute));
 }
 
 #define _PyLoop_NULL_INJECTION() ;
