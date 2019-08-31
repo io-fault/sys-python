@@ -24,6 +24,7 @@ def identification():
 	# Collect the python reference parameter from the &sysconfig module.
 	"""
 
+	from importlib.machinery import EXTENSION_SUFFIXES
 	version = '.'.join(map(str, sys.version_info[:2]))
 	abi = sys.abiflags
 
