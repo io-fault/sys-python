@@ -86,6 +86,7 @@ def visit(node, parent=None, field=None, index=None, sequencing=source.sequence_
 		else:
 			pass
 
+# Profiling is not yet supported.
 initialization = """
 if True:
 	from f_intention.python import instrumentation as _fi_module
@@ -106,7 +107,7 @@ if True:
 	del _fi_module
 """.strip() + '\n'
 
-count_boolop_expression = "(_FI_INCREMENT__(((%r, %r),)) or INSTRUMENTATION_ERROR)"
+count_boolop_expression = "(_FI_INCREMENT__(((__file__, %r),)) or INSTRUMENTATION_ERROR)"
 count_call_expression = "_FI_COUNT__(%r,None)"
 
 # Seeks the pass for the replacement point.
@@ -130,7 +131,7 @@ def construct_call_increment(node, area, path='/dev/null', lineno=1):
 	return k, update
 
 def construct_boolop_increment(node, area, path='/dev/null', lineno=1):
-	s = count_boolop_expression % (path, area,)
+	s = count_boolop_expression % (area,)
 	p = ast.parse(s, path)
 	expr = p.body[0]
 	for x in ast.walk(expr):
