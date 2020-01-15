@@ -7,7 +7,7 @@ import collections
 import pickle
 import itertools
 
-from ...factors import metrics
+from ...coherence import metrics
 
 from . import instrumentation
 from . import source
