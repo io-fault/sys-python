@@ -6,7 +6,6 @@
 import os
 
 from fault.system import process
-from fault.time import sysclock
 
 from .. import module
 from .. import bytecode
@@ -32,7 +31,7 @@ def subprocess_bytecode_compiler(
 	if intention in ('debug', 'instruments', 'injections'):
 		optimize = '0'
 
-	command = [None, filepath(output), filepath(inf), optimize]
+	command = [None, filepath(output), filepath(inf), 'optimize', optimize, 'intention', intention]
 	return command
 
 def function_bytecode_compiler(
@@ -79,9 +78,7 @@ def store(target, source, optimize, parameters=None):
 		compiler = module.compile
 
 	factor_name = parameters.pop('factor', None)
-	constants = [
-		('__timestamp__', int(sysclock.now())),
-	]
+	constants = []
 
 	with open(source) as f:
 		source_file_contents = f.read()
