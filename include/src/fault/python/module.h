@@ -60,20 +60,20 @@
 			__PYTHON_RECEPTACLE__ = NULL; \
 		} while(0)
 
-	#define INIT_MODULE_GLOBALS() \
+	#define INIT_MODULE_GLOBALS(MODULE) \
 		__ERRNO_RECEPTACLE__ = PyDict_New(); \
 		__PYTHON_RECEPTACLE__ = PyDict_New(); \
 		if (PyErr_Occurred()) { \
 			DROP_MODULE_GLOBALS(); \
 		} else { \
-			PyDict_SetItemString(__dict__, "__ERRNO_RECEPTACLE__", __ERRNO_RECEPTACLE__); \
-			PyDict_SetItemString(__dict__, "__PYTHON_RECEPTACLE__", __PYTHON_RECEPTACLE__); \
+			PyModule_AddObject(MODULE, "__ERRNO_RECEPTACLE__", __ERRNO_RECEPTACLE__); \
+			PyModule_AddObject(MODULE, "__PYTHON_RECEPTACLE__", __PYTHON_RECEPTACLE__); \
 		}
 #else
+	/* Optimal and Debug intentions. */
 	#define DEFINE_MODULE_GLOBALS
-	/* Nothing without TEST || METRICS */
-	#define INIT_MODULE_GLOBALS() ;
-	#define DROP_MODULE_GLOBALS() ;
+	#define INIT_MODULE_GLOBALS(MODULE) do {} while(0)
+	#define DROP_MODULE_GLOBALS() do {} while(0)
 #endif
 
 #define _py_INIT_FUNC_X(BN) CONCAT_IDENTIFIER(PyInit_, BN)
@@ -103,7 +103,7 @@
 		if (_MOD) { \
 			__dict__ = PyModule_GetDict(_MOD); \
 			if (__dict__ == NULL) { Py_DECREF(_MOD); return(-1); } \
-			INIT_MODULE_GLOBALS(); \
+			INIT_MODULE_GLOBALS(MODPARAM); \
 			if (PyErr_Occurred()) { Py_DECREF(_MOD); return(-1); } \
 			else { \
 				if (_py_INIT_FUNC(_MOD) != 0) \
@@ -170,7 +170,7 @@ do { \
 		} \
 		else \
 		{ \
-			INIT_MODULE_GLOBALS(); \
+			INIT_MODULE_GLOBALS(_MOD); \
 			if (PyErr_Occurred()) \
 			{ \
 				Py_DECREF(_MOD); \
@@ -198,10 +198,10 @@ do { \
 	}; \
 	\
 	static int _module_exec(PyObj); \
-	static int module_exec(PyObj mod) \
+	static int module_exec(PyObj MODPARAM) \
 	{ \
-		INIT_MODULE_GLOBALS(); \
-		return _module_exec(mod); \
+		INIT_MODULE_GLOBALS(MODPARAM); \
+		return _module_exec(MODPARAM); \
 	} \
 	static PyModuleDef_Slot module_slots[] = { \
 		{Py_mod_exec, module_exec}, \
