@@ -136,18 +136,21 @@ def instruments(args, fault, ctx, ctx_route, ctx_params, domain):
 	instantiate_software(ctx_route, 'f_intention', tool_name, tmpl_path, 'metrics')
 
 	# Register tool and probe constructor.
-	from .. import library
+	from .. import coverage
 	data = {
-		'constructor': '.'.join((library.__name__, library.Probe.__qualname__)),
+		'python-controller': '.'.join((coverage.__name__, coverage.Probe.__qualname__)),
 	}
 
 	return {
 		domain: {
 			'transformations': {
 				'python': {
-					'telemetry': data
+					'metrics': tool_name,
 				}
 			},
+		},
+		'metrics': {
+			tool_name: data,
 		}
 	}
 
@@ -177,7 +180,7 @@ def install(args, fault, ctx, ctx_route, ctx_params):
 
 		if ctx_intention == 'instruments':
 			layer = instruments(args, fault, ctx, ctx_route, ctx_params, pydata['identifier'])
-			ccd.update_named_mechanism(mechfile, 'metrics', layer)
+			ccd.update_named_mechanism(mechfile, 'instrumentation-control', layer)
 
 def main(inv:process.Invocation) -> process.Exit:
 	fault = inv.environ.get('FAULT_CONTEXT_NAME', 'fault')
