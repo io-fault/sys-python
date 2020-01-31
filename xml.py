@@ -16,16 +16,15 @@ import importlib
 import typing
 import pickle
 
-from fault.system import libfactor
+from fault.system import factors
 from fault.system import python
 from fault.system import files
 
-from fault.xml import library as libxml
+from fault.web import xml as libxml
 from fault.xml import python as xep
 from fault.text import library as libtext
 
-from ...factors import fragments
-from ...factors import xml as devxml
+from ...export import comments
 
 serialization = xep.Serialization() # currently only utf-8 is used.
 
@@ -179,11 +178,11 @@ class Context(object):
 
 		if fl.startswith('\t'):
 			indentation = len(fl) - len(fl.lstrip('\t'))
-			plines = fragments.strip_notation_prefix([x[indentation:] for x in lines])
+			plines = comments.strip_notation_prefix([x[indentation:] for x in lines])
 			return '\n'.join(plines)
 		else:
 			# assume no indentation and likely single line
-			plines = fragments.strip_notation_prefix(lines)
+			plines = comments.strip_notation_prefix(lines)
 			return '\n'.join(plines)
 
 	if hasattr(inspect, 'signature'):
@@ -225,7 +224,7 @@ class Context(object):
 
 		# If there is no canonical package name, return &name exactly.
 		"""
-		return libfactor.canonical_name(Import(name))
+		return name
 
 	def address(self, obj:object, getmodule=inspect.getmodule):
 		"""
@@ -624,7 +623,7 @@ class Context(object):
 		if element == 'subfactor':
 			# Composite fractions are subfactors too.
 			if module.__factor_composite__:
-				source_factors = libfactor.sources(route)
+				source_factors = []
 				prefix = len(source_factors.absolute)
 
 				for x in source_factors.tree()[1]:
@@ -654,7 +653,7 @@ class Context(object):
 
 	def serialize(self, module:types.ModuleType, metrics:typing.Mapping=None):
 		"""
-		# Construct an interator emitting an XML Fragments document. 
+		# Construct an interator emitting an XML Fragments document.
 		"""
 
 		route = self.route
