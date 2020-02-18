@@ -70,7 +70,7 @@ def main(inv:process.Invocation) -> process.Exit:
 				cache_dir.init('directory')
 
 			caches = map(files.Path.from_absolute, map(cache_from_source, map(str, sources)))
-			prefix = x.extend(fpath)
+			prefix = x + fpath
 
 			for src, cache in zip(sources, caches):
 				name, *ext = src.identifier.split('.')
@@ -78,7 +78,7 @@ def main(inv:process.Invocation) -> process.Exit:
 				var.update(py_variants)
 				segment = libproject.compose_integral_path(var)
 
-				i = (src * '__f-int__').extend(segment)
+				i = (src * '__f-int__') + segment
 				if intention is not None:
 					i = i.suffix('.%s.i' %(intention,))
 				else:
@@ -104,20 +104,20 @@ def main(inv:process.Invocation) -> process.Exit:
 			domain, typ, syms, sources = data
 
 			fpath = list(fpath)
-			prefix = x.extend(fpath) * '__f-int__'
+			prefix = (x + fpath) * '__f-int__'
 
 			var = {'name': fpath[-1]}
 			var.update(os_variants)
 			segment = libproject.compose_integral_path(var)
 
-			i = prefix.extend(segment)
+			i = prefix + segment
 			if intention is not None:
 				i = i.suffix('.%s.i' %(intention,))
 			else:
 				i = i.suffix('.i')
 
 			del fpath[fpath.index('extensions')]
-			target = x.extend(fpath)
+			target = x + fpath
 			export = target.suffix('.so')
 
 			# Make sure the parent exists.
