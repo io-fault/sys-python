@@ -66,8 +66,7 @@ def main(inv:process.Invocation) -> process.Exit:
 				continue
 
 			cache_dir = sources[0] * '__pycache__'
-			if not cache_dir.exists():
-				cache_dir.init('directory')
+			cache_dir.fs_mkdir()
 
 			caches = map(files.Path.from_absolute, map(cache_from_source, map(str, sources)))
 			prefix = x + fpath
@@ -80,21 +79,21 @@ def main(inv:process.Invocation) -> process.Exit:
 
 				i = (src * '__f-int__') + segment
 				if intention is not None:
-					i = i.suffix('.%s.i' %(intention,))
+					i = i.suffix_filename('.%s.i' %(intention,))
 				else:
-					i = i.suffix('.i')
+					i = i.suffix_filename('.i')
 
-				if not i.exists():
+				if i.fs_type() == 'void':
 					continue
 
 				sys.stdout.write("[*| %s -> %s]\n" %(i, cache))
-				if cache.exists():
+				if cache.fs_type() != 'void':
 					os.unlink(str(cache))
 
 				stat = os.stat(str(src))
 				try:
-					code = marshal.loads(i.load())
-					cache.store(serialize_timestamp_checked(code, stat.st_mtime, stat.st_size))
+					code = marshal.loads(i.fs_load())
+					cache.fs_store(serialize_timestamp_checked(code, stat.st_mtime, stat.st_size))
 				except ValueError:
 					pass
 
@@ -112,23 +111,21 @@ def main(inv:process.Invocation) -> process.Exit:
 
 			i = prefix + segment
 			if intention is not None:
-				i = i.suffix('.%s.i' %(intention,))
+				i = i.suffix_filename('.%s.i' %(intention,))
 			else:
-				i = i.suffix('.i')
+				i = i.suffix_filename('.i')
 
 			del fpath[fpath.index('extensions')]
 			target = x + fpath
-			export = target.suffix('.so')
+			export = target.suffix_filename('.so')
 
-			# Make sure the parent exists.
-			if not target.container.exists():
-				target.container.init('directory')
+			target.container.fs_mkdir()
 
-			if not i.exists():
+			if i.fs_type() == 'void':
 				sys.stdout.write("[!# expected target (%s) for '%s' does not exist]\n" %(i, export))
 			else:
 				sys.stdout.write("[&| %s -> %s]\n" %(i, export))
-				export.link(i, relative=True)
+				export.fs_link_relative(i)
 
 	return inv.exit(0)
 
