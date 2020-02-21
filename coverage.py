@@ -72,7 +72,7 @@ class Probe(metrics.Probe):
 
 	def transmit(self, directory):
 		m = directory / 'profile.pickle'
-		with m.open('wb') as f:
+		with m.fs_open('wb') as f:
 			pickle.dump({}, f)
 
 		try:
@@ -84,7 +84,7 @@ class Probe(metrics.Probe):
 				sl, sc, el, ec = address
 				data[path][(sl,sc+1,el,ec+1)] = count
 
-			with m.open('wb') as f:
+			with m.fs_open('wb') as f:
 				pickle.dump(data, f)
 		except ImportError:
 			raise
@@ -125,7 +125,7 @@ class Probe(metrics.Probe):
 		for m_typ, m_id, m_route in measures:
 			profile_data = m_route / self.name / 'profile.pickle'
 			try:
-				with profile_data.open('rb') as f:
+				with profile_data.fs_open('rb') as f:
 					profile = pickle.load(f)
 			except EOFError:
 				continue
@@ -142,7 +142,7 @@ class Probe(metrics.Probe):
 		for m_typ, m_id, m_route in measures:
 			coverage_data = m_route / self.name / 'coverage.pickle'
 			try:
-				with coverage_data.open('rb') as f:
+				with coverage_data.fs_open('rb') as f:
 					coverage = pickle.load(f)
 			except EOFError:
 				# Likely empty file.

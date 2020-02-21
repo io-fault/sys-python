@@ -525,7 +525,7 @@ class Context(object):
 
 		for route in sources:
 			if compressed:
-				with route.open('rb') as src:
+				with route.fs_open('rb') as src:
 					h = hashlib.sha512()
 					x = lzma.LZMACompressor(format=lzma.FORMAT_ALONE)
 					cs = bytearray()
@@ -542,8 +542,8 @@ class Context(object):
 					hash = h.hexdigest()
 					cs += x.flush()
 			else:
-				if route.exists():
-					with route.open('rb') as src:
+				if route.fs_type() != 'void':
+					with route.fs_open('rb') as src:
 						cs = src.read()
 						lc = cs.count(b'\n')
 						hash = hashlib.sha512(cs).hexdigest()
@@ -642,10 +642,9 @@ class Context(object):
 				yield from self.d_submodules(route.container, route.container.module(), 'cofactor')
 
 	def emit(fs, key, iterator):
-		r = fs.route(key)
-		r.init('file')
+		r = fs.route(key).fs_init()
 
-		with r.open('wb') as f:
+		with r.fs_open('wb') as f:
 			# the xml declaration prefix is not written.
 			# this allows stylesheet processing instructions
 			# to be interpolated without knowning the declaration size.
