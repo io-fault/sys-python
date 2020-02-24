@@ -1,6 +1,8 @@
 """
 # Create the necessary preprocessor statements for building a bound Python executable.
 """
+import os
+import sys
 
 def command(target, source, compiler='cc'):
 	"""
@@ -36,7 +38,12 @@ requirements = [
 	'PYTHON_PATH_STR',
 	'PYTHON_PATH',
 	'PYTHON_OPTION_MODULES',
+
+	'FACTOR_PATH_STR',
+	'FACTOR_PATH',
 ]
+
+envfp = os.environ.get('FACTORPATH', '').strip().split(':')
 
 def chars(string):
 	return "','".join(string)
@@ -54,13 +61,13 @@ def cpaths(paths):
 	return quoted(':'.join(paths))
 
 def ipaths(xmacro, paths):
-	if paths:
+	if paths and (paths[0] or len(paths) > 1):
 		return "\\\n\t" + " \\\n\t".join([xmacro+'("%s")' %(x,) for x in paths])
 	else:
 		return ""
 
 def binding(options, executable, target_module, entry_point, paths):
-	return [
+	return (
 		"#define %s %s\n" %(dname, define)
 		for (dname, define) in zip(requirements, [
 			quoted(target_module),
@@ -69,8 +76,10 @@ def binding(options, executable, target_module, entry_point, paths):
 			cpaths(paths),
 			ipaths('PYTHON_PATH_STRING', paths),
 			ipaths('INIT_PYTHON_OPTION', options),
+			cpaths(envfp),
+			ipaths('FACTOR_PATH_STRING', envfp),
 		])
-	]
+	)
 
 def options(argv):
 	options = []
@@ -89,7 +98,8 @@ def display():
 	module_path, call_name, *bpaths = argv
 	paths = bpaths or sys.path
 
-	print(''.join(binding(option_modules, sys.executable, module_path, call_name, paths)))
+	for sf in binding(option_modules, sys.executable, module_path, call_name, paths):
+		sys.stdout.write(sf)
 
 if __name__ == '__main__':
 	display()
