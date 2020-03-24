@@ -13,9 +13,10 @@ from fault.system import files
 from fault.system import python
 
 from ...context import templates
+from ...context import constructors
+
 from ....factors import cc
 from ....factors import data as ccd
-from ....factors import constructors
 
 tool_name = 'python'
 name = 'fault.python'
