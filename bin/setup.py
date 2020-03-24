@@ -12,6 +12,7 @@ from fault.system import process
 from fault.system import files
 from fault.system import python
 
+from ...context import templates
 from ....factors import cc
 from ....factors import data as ccd
 from ....factors import constructors
@@ -80,42 +81,45 @@ def compilation(domain, system, architecture):
 				'system': system,
 				'architecture': architecture,
 			},
-			'formats': {
-				'library': 'pyc',
-			},
-			'target-file-extensions': {
-				'library': '.pyc',
-			},
 			'transformations': {
-				'python': {
-					'type': 'transparent',
-					'interface': constructors.__name__ + '.transparent',
-					'command': "/bin/ln",
-				},
+				# Effectively copy source files as &.bin.compile
+				# takes Python source.
+				'python': templates.Projection,
 			},
 
 			'integrations': {
-				'library': {
-					'inherit': 'tool:pyc-subprocess',
-				},
+				'module': templates.Inherit('tool:pyc-subprocess'),
+				'library': templates.Inherit('tool:pyc-subprocess'),
+
 				'tool:pyc-local': {
 					'method': 'internal',
-					'interface': compile.__name__ + '.function_bytecode_compiler',
 					'name': 'pyc',
+					'interface': compile.__name__ + '.function_bytecode_compiler',
 					'command': __package__ + '.compile',
 				},
 
 				# Likely unused in cases where the executing Python is the target Python.
 				'tool:pyc-subprocess': {
 					'method': 'python',
-					'interface': compile.__name__ + '.subprocess_bytecode_compiler',
 					'name': 'pyc',
+					'interface': compile.__name__ + '.subprocess_bytecode_compiler',
 					'command': __package__ + '.compile',
 				},
 			}
 		},
 		'python': {
 			'inherit': domain,
+			'default-factor-type': 'module',
+
+			# They're not actually .pyc files, but rather raw marshal.dumps of code objects.
+			'formats': {
+				'library': 'pyc',
+				'module': 'pyc',
+			},
+			'target-file-extensions': {
+				'library': '.pyc',
+				'module': '.pyc',
+			},
 		}
 	}
 
@@ -124,7 +128,36 @@ def fragments(args, fault, ctx, ctx_route, ctx_params, domain):
 	# Initialize the syntax tooling for delineation contexts.
 	"""
 
-	raise NotImplementedError("AST generalization is not yet implemented")
+	return {
+		domain: {
+			'variants': {
+				'system': system,
+				'architecture': architecture,
+			},
+			'transformations': {
+				'python': {
+					'command': __package__ + '.delineate',
+					'interface': None,
+					'method': 'pythoon',
+				},
+			},
+
+			'integrations': {
+				'elements': templates.Duplication,
+			}
+		},
+		'python': {
+			'inherit': domain,
+			'default-type': 'module',
+			'formats': {
+				'library': 'pyc',
+				'module': 'pyc',
+			},
+			'target-file-extensions': {
+				'library': '.pyc',
+			},
+		}
+	}
 
 def instruments(args, fault, ctx, ctx_route, ctx_params, domain):
 	"""
@@ -170,17 +203,18 @@ def install(args, fault, ctx, ctx_route, ctx_params):
 	else:
 		data = compilation(pydata['identifier'], host_system, pydata['tag'].replace('-','') + pydata['abi'])
 		ccd.update_named_mechanism(mechfile, 'default', data)
-		ccd.update_named_mechanism(mechfile, 'language-specifications', {
-			'syntax': {
-				'target-file-extensions': {
-					'python': 'py',
-				},
-			}
-		})
 
 		if ctx_intention == 'instruments':
 			layer = instruments(args, fault, ctx, ctx_route, ctx_params, pydata['identifier'])
 			ccd.update_named_mechanism(mechfile, 'instrumentation-control', layer)
+
+	ccd.update_named_mechanism(mechfile, 'language-specifications', {
+		'syntax': {
+			'target-file-extensions': {
+				'python': 'py',
+			},
+		}
+	})
 
 def main(inv:process.Invocation) -> process.Exit:
 	fault = inv.environ.get('FAULT_CONTEXT_NAME', 'fault')
