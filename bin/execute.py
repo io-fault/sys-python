@@ -52,9 +52,7 @@ def prepare(exectype, path, execargs):
 		loader = None
 		spec = None
 	elif exectype == 'module':
-		from fault.routes.library import Import
-
-		ir = Import.from_fullname(path)
+		ir = python.Import.from_fullname(path)
 		spec = ir.spec()
 		loader = spec.loader
 
