@@ -124,38 +124,43 @@ def compilation(domain, system, architecture):
 		}
 	}
 
-def fragments(args, fault, ctx, ctx_route, ctx_params, domain):
+def delineation(domain, system, architecture):
 	"""
 	# Initialize the syntax tooling for delineation contexts.
 	"""
 
 	return {
-		domain: {
+		'python-fragments': {
 			'variants': {
 				'system': system,
 				'architecture': architecture,
 			},
+
 			'transformations': {
-				'python': {
+				'python': templates.Inherit('tool:pyd-subprocess'),
+				'tool:pyd-subprocess': {
+					'method': 'python',
 					'command': __package__ + '.delineate',
-					'interface': None,
-					'method': 'pythoon',
+					'interface': constructors.__name__ + '.delineation',
 				},
 			},
 
 			'integrations': {
-				'elements': templates.Duplication,
-			}
+				'module': templates.Clone,
+				'library': templates.Clone,
+			},
+
 		},
 		'python': {
-			'inherit': domain,
+			'inherit': 'python-fragments',
 			'default-type': 'module',
 			'formats': {
-				'library': 'pyc',
-				'module': 'pyc',
+				'module': 'i',
+				'library': 'i',
 			},
 			'target-file-extensions': {
-				'library': '.pyc',
+				'module': '.i',
+				'library': '.i',
 			},
 		}
 	}
@@ -199,8 +204,9 @@ def install(args, fault, ctx, ctx_route, ctx_params):
 
 	pydata = identification()
 
-	if ctx_intention == 'fragments':
-		data = fragments(args, fault, ctx, ctx_route, ctx_params)
+	if ctx_intention == 'delineation':
+		data = delineation(pydata['identifier'], host_system, pydata['tag'].replace('-','') + pydata['abi'])
+		ccd.update_named_mechanism(mechfile, 'default', data)
 	else:
 		data = compilation(pydata['identifier'], host_system, pydata['tag'].replace('-','') + pydata['abi'])
 		ccd.update_named_mechanism(mechfile, 'default', data)
