@@ -77,51 +77,42 @@ def compilation(domain, system, architecture):
 	from . import compile
 
 	return {
-		domain: {
-			'variants': {
-				'system': system,
-				'architecture': architecture,
-			},
-			'transformations': {
-				# Effectively copy source files as &.bin.compile
-				# takes Python source.
-				'python': templates.Projection,
-			},
-
-			'integrations': {
-				'module': templates.Inherit('tool:pyc-subprocess'),
-				'library': templates.Inherit('tool:pyc-subprocess'),
-
-				'tool:pyc-local': {
-					'method': 'internal',
-					'name': 'pyc',
-					'interface': compile.__name__ + '.function_bytecode_compiler',
-					'command': __package__ + '.compile',
-				},
-
-				# Likely unused in cases where the executing Python is the target Python.
-				'tool:pyc-subprocess': {
-					'method': 'python',
-					'name': 'pyc',
-					'interface': compile.__name__ + '.subprocess_bytecode_compiler',
-					'command': __package__ + '.compile',
-				},
-			}
+		'variants': {
+			'system': system,
+			'architecture': architecture,
 		},
-		'python': {
-			'inherit': domain,
-			'default-factor-type': 'module',
+		'transformations': {
+			# Effectively copy source files as &.bin.compile
+			# takes Python source.
+			'python': templates.Projection,
+		},
 
-			# They're not actually .pyc files, but rather raw marshal.dumps of code objects.
-			'formats': {
-				'library': 'pyc',
-				'module': 'pyc',
+		'integrations': {
+			'python-module': templates.Inherit('tool:pyc-subprocess'),
+
+			'tool:pyc-local': {
+				'method': 'internal',
+				'name': 'pyc',
+				'interface': compile.__name__ + '.function_bytecode_compiler',
+				'command': __package__ + '.compile',
 			},
-			'target-file-extensions': {
-				'library': '.pyc',
-				'module': '.pyc',
+
+			# Likely unused in cases where the executing Python is the target Python.
+			'tool:pyc-subprocess': {
+				'method': 'python',
+				'name': 'pyc',
+				'interface': compile.__name__ + '.subprocess_bytecode_compiler',
+				'command': __package__ + '.compile',
 			},
-		}
+		},
+
+		# They're not actually .pyc files, but rather raw marshal.dumps of code objects.
+		'formats': {
+			'python-module': 'pyc',
+		},
+		'target-file-extensions': {
+			'python-module': '.pyc',
+		},
 	}
 
 def delineation(domain, system, architecture):
@@ -130,39 +121,30 @@ def delineation(domain, system, architecture):
 	"""
 
 	return {
-		'python-fragments': {
-			'variants': {
-				'system': system,
-				'architecture': architecture,
-			},
-
-			'transformations': {
-				'python': templates.Inherit('tool:pyd-subprocess'),
-				'tool:pyd-subprocess': {
-					'method': 'python',
-					'command': __package__ + '.delineate',
-					'interface': constructors.__name__ + '.delineation',
-				},
-			},
-
-			'integrations': {
-				'module': templates.Clone,
-				'library': templates.Clone,
-			},
-
+		'formats': {
+			'python-module': 'i',
 		},
-		'python': {
-			'inherit': 'python-fragments',
-			'default-type': 'module',
-			'formats': {
-				'module': 'i',
-				'library': 'i',
+		'target-file-extensions': {
+			'python-module': '.i',
+		},
+
+		'variants': {
+			'system': system,
+			'architecture': architecture,
+		},
+
+		'transformations': {
+			'python': templates.Inherit('tool:pyd-subprocess'),
+			'tool:pyd-subprocess': {
+				'method': 'python',
+				'command': __package__ + '.delineate',
+				'interface': constructors.__name__ + '.delineation',
 			},
-			'target-file-extensions': {
-				'module': '.i',
-				'library': '.i',
-			},
-		}
+		},
+
+		'integrations': {
+			'python-module': templates.Clone,
+		},
 	}
 
 def instruments(args, fault, ctx, ctx_route, ctx_params, domain):
@@ -203,18 +185,21 @@ def install(args, fault, ctx, ctx_route, ctx_params):
 	mechfile = ctx_route / 'mechanisms' / name
 
 	pydata = identification()
+	arch = pydata['tag'].replace('-', '')
+	domain_id = pydata['identifier']
 
 	if ctx_intention == 'delineation':
-		data = delineation(pydata['identifier'], host_system, pydata['tag'].replace('-','') + pydata['abi'])
-		ccd.update_named_mechanism(mechfile, 'default', data)
+		data = delineation(domain_id, host_system, arch)
+		ccd.update_named_mechanism(mechfile, 'root', {domain_id: data})
 	else:
-		data = compilation(pydata['identifier'], host_system, pydata['tag'].replace('-','') + pydata['abi'])
-		ccd.update_named_mechanism(mechfile, 'default', data)
+		data = compilation(domain_id, host_system, arch)
+		ccd.update_named_mechanism(mechfile, 'root', {domain_id: data})
 
 		if ctx_intention == 'instruments':
-			layer = instruments(args, fault, ctx, ctx_route, ctx_params, pydata['identifier'])
+			layer = instruments(args, fault, ctx, ctx_route, ctx_params, domain_id)
 			ccd.update_named_mechanism(mechfile, 'instrumentation-control', layer)
 
+	ccd.update_named_mechanism(mechfile, 'path-setup', {'context': {'path': [domain_id]}})
 	ccd.update_named_mechanism(mechfile, 'language-specifications', {
 		'syntax': {
 			'target-file-extensions': {
