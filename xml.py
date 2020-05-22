@@ -510,11 +510,10 @@ class Context(object):
 				('path', self.canonical(pkg.__name__)),
 				('system.path', os.path.dirname(pkg.__file__)),
 				('project', getattr(prj, 'name', None)),
-				('identity', getattr(prj, 'identity', None)),
+				('identifier', getattr(prj, 'identifier', None)),
 				('icon', getattr(prj, 'icon', None)),
-				('fork', getattr(prj, 'fork', None)),
 				('contact', getattr(prj, 'contact', None)),
-				('controller', getattr(prj, 'controller', None)),
+				('authority', getattr(prj, 'authority', None)),
 				('abstract', getattr(prj, 'abstract', '')),
 			)
 
