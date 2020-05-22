@@ -4,19 +4,14 @@
 
 /identifier/
 	&<http://fault.io/engineering/tools.python>
+/icon/
+	- (emoji)`🔧`
 /name/
 	`python`
 /abstract/
 	Python compilation, delineation, and coverage tools
-/icon/
-	- (emoji)`🔧`
 
-/versioning/
-	continuous
-/status/
-	volatile
-
-/controller/
+/authority/
 	`fault.io`
 /contact/
 	&<http://fault.io/critical>
