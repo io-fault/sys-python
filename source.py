@@ -193,7 +193,7 @@ def identify_boundary(tokens, start, end, OP=tokenize.OP, NAME=tokenize.NAME):
 	# Narrows the token window by trimming insignificant (whitespace or certain keywords) tokens
 	# from the list.
 
-	# The default token sequence for a node is constrained by the node's location and it's
+	# The default token sequence for a node is constrained by the node's location and its
 	# identified following sibling, &associate_siblings.
 	"""
 	# Extract window from following sibling address.
@@ -217,7 +217,7 @@ def identify_boundary(tokens, start, end, OP=tokenize.OP, NAME=tokenize.NAME):
 
 def find_terminal(tokens, length, stop=None, condition=(lambda x: False), OP=tokenize.OP):
 	"""
-	# Find the end of the context tokens
+	# Find the end of the context tokens.
 	"""
 	opened = closed = 0
 
