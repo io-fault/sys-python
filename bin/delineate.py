@@ -18,6 +18,19 @@ from .. import comments
 
 Assignments = (ast.Assign, ast.AnnAssign)
 
+def read_name(node):
+	"""
+	# Read the identifiers from an attribute series terminated with a name.
+	"""
+	while isinstance(node, ast.Attribute):
+		yield node.attr
+		node = node.value
+
+	if not isinstance(node, ast.Name):
+		raise ValueError("attributes series did not finish with a name")
+
+	yield node.id
+
 def _read_expression(context, i):
 	f = Fragment(context, None, i)
 	return {'syntax': f.syntax(), 'area': f.area}
@@ -40,7 +53,7 @@ Constants = {
 	getattr(ast, 'NameConstant', None): (lambda y,x: x.value),
 	getattr(ast, 'Num', None): (lambda y,x: x.n),
 	getattr(ast, 'Str', None): (lambda y,x: x.s),
-	getattr(ast, 'Bytes', None): (lambda y,x: x.s),
+	getattr(ast, 'Bytes', None): (lambda y,x: repr(x.s)),
 	getattr(ast, 'Constant', None): (lambda y,x: x.value),
 
 	ast.Tuple: (lambda y,x: tuple(_read_data_iterable(y,x.elts))),
@@ -74,6 +87,7 @@ class Fragment(object):
 		ast.ClassDef: 'class',
 		ast.Lambda: 'lambda',
 		ast.Import: 'import',
+		ast.ImportFrom: 'import-from',
 		ast.Assign: 'data',
 		ast.AnnAssign: 'data',
 		getattr(ast, 'AsyncFunctionDef', None): 'function',
@@ -295,15 +309,26 @@ class Switch(comethod.object):
 			('area', fragment.area),
 		]
 
-	def ann_type(self, fragment):
+	def annotation_type(self, fragment):
+		"""
+		# Construct an element type node from the annotation of the &fragment.
+		"""
 		ann = fragment.node.annotation
 		f = fragment.subnode(ann, None)
 		syntax = f.syntax().lstrip(":").rstrip(",")
 
+		# If it's a simple name or attribute series, provide a reference attribute.
+		try:
+			ids = list(read_name(f.node))
+			name = '.'.join(reversed(ids)) or None
+		except ValueError:
+			name = None
+
 		return self.element('type',
 			[],
-			('area', f.area),
+			*self.attributes(f),
 			syntax = syntax,
+			reference = name
 		)
 
 	@comethod('data')
@@ -313,7 +338,7 @@ class Switch(comethod.object):
 			return ()
 
 		try:
-			dtype = self.ann_type(fragment)
+			dtype = self.annotation_type(fragment)
 			name, constant = fragment.read_ann_assign()
 		except AttributeError:
 			dtype = ()
@@ -339,20 +364,9 @@ class Switch(comethod.object):
 		)
 
 	def annotate(self, fragment):
-		annot = fragment.node.annotation
-
-		if annot is not None:
-			name = fragment.node.arg
-			f = fragment.subnode(annot, None)
-			syntax = f.syntax()
-
-			return self.element('type',
-				[],
-				*self.attributes(f),
-				syntax=syntax,
-			)
-
-		return ()
+		if fragment.node.annotation is None:
+			return ()
+		return self.annotation_type(fragment)
 
 	def parameters_v1(self, fragment):
 		args = fragment.node.args
@@ -430,8 +444,44 @@ class Switch(comethod.object):
 		)
 
 	@comethod('import')
-	def extract_import(self, fragment):
-		return ()
+	def extract_import(self, fragment, prefix=None, depth=None):
+		isnode = fragment.node
+
+		for isname in isnode.names:
+			# Potentially multiple import elements for each statement.
+			# import a as x, b as y
+
+			if isname.asname is not None:
+				# Element identifier is the target name.
+				import_id = isname.asname
+				offset = import_id.find('.')
+				if offset > -1:
+					path = import_id.split('.')
+					import_id = import_id[:offset]
+				else:
+					path = [import_id]
+			else:
+				# Otherwise, element identifier is the *first* field.
+				import_id, *path = isname.name.split('.')
+				path.insert(0, import_id)
+
+			yield from self.element('import',
+				(),
+				('identifier', import_id),
+				path = prefix + path if prefix else path,
+				area = fragment.area,
+				relative = depth,
+			)
+
+	@comethod('import-from')
+	def extract_import_from(self, fragment):
+		isnode = fragment.node
+
+		prefix = []
+		if isnode.module:
+			prefix.extend(isnode.module.split('.'))
+
+		return self.extract_import(fragment, prefix=prefix, depth=isnode.level)
 
 	@comethod('class')
 	def extract_class(self, fragment):
