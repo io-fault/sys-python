@@ -478,7 +478,7 @@ if __name__ == '__main__':
 		if not hasattr(n, '_f_area'):
 			continue
 		area = n._f_area
-		area = (area[0], area[1]+1, area[2], area[3]+1)
+		area = (area[0], area[1]+1, area[2], area[3])
 		if hasattr(n, '_f_context'):
 			start = n._f_context[0][:2]
 			area = (start[0], start[1]+1) + area[2:]

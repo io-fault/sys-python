@@ -26,8 +26,8 @@ class Probe(metrics.Probe):
 
 			selector = ((node, instrumentation.delineate(node)) for node in nodes)
 			data[src] = {
-				(addr[0], addr[1]+1, addr[2], addr[3]+1): (
-					(addr[0], addr[1]+1, addr[2], addr[3]+1),
+				(addr[0], addr[1]+1, addr[2], addr[3]): (
+					(addr[0], addr[1]+1, addr[2], addr[3]),
 					node[0].__class__.__name__
 					if not isinstance(node[0], (source.ast.Str, source.ast.Name))
 					else '%s[%s]' %(
