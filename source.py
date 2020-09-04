@@ -202,6 +202,8 @@ def identify_boundary(tokens, start, end, OP=tokenize.OP, NAME=tokenize.NAME):
 
 	# Trim whitespace from list.
 	trim(l)
+	if not l:
+		return (0, tokens[0], tokens[0].end) # No tokens?
 
 	position, token = find_terminal(l, len(l))
 	if position < len(l):
@@ -309,6 +311,7 @@ isolate = {
 	ast.Name: isolate_name,
 	ast.Attribute: isolate_name,
 	ast.NameConstant: isolate_name,
+	getattr(ast, 'Constant', None): isolate_string,
 	ast.Dict: functools.partial(isolate_enclosure, '{', '}'),
 	ast.Set: functools.partial(isolate_enclosure, '{', '}'),
 	ast.List: functools.partial(isolate_enclosure, '[', ']'),
@@ -326,7 +329,7 @@ def chain(tokens, nodes, node, address, following, OP=tokenize.OP):
 		try:
 			r = isolate[current.__class__](tokens)
 			yield current, r
-		except KeyError:
+		except (KeyError, TypeError):
 			# Essentially, the chain has stopped.
 			pass
 
