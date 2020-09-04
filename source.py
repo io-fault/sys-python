@@ -452,7 +452,7 @@ def _prepare(nodes, tokens, filter=bottom, identify=_lookup_region):
 	lookup = functools.partial(_lookup_region, sa, d, tokens, tmap)
 	yield from join(lookup, filter(nodes))
 
-def parse(source:str, path:str, filter=bottom, encoding='utf-8') -> ast.Module:
+def parse(source:str, path:str, filter=bottom, encoding='utf-8'):
 	"""
 	# Parse the given &source creating an &ast.Module whose child nodes have their exact areas
 	# assigned to the `_f_area` attribute.
@@ -460,10 +460,11 @@ def parse(source:str, path:str, filter=bottom, encoding='utf-8') -> ast.Module:
 	nodes = ast.parse(source, path)
 	ast.fix_missing_locations(nodes)
 
-	readline = iter(source.encode(encoding).splitlines(True)).__next__
+	sourcelines = source.encode(encoding).splitlines(True)
+	readline = iter(sourcelines).__next__
 	tokens = list(tokenize.tokenize(readline))
 
-	return nodes, _prepare(nodes, tokens, filter=filter)
+	return sourcelines, nodes, _prepare(nodes, tokens, filter=filter)
 
 if __name__ == '__main__':
 	import sys

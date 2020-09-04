@@ -218,7 +218,7 @@ def compile(factor, source, path, constants, optimize=1,
 	"""
 	# Compile Python source of a module into an instrumented &types.CodeObject
 	"""
-	tree, nodes = parse(source, path, filter=visit)
+	srclines, tree, nodes = parse(source, path, filter=visit)
 
 	for noded in nodes:
 		if not hasattr(noded[0], '_f_area'):

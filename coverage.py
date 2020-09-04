@@ -22,7 +22,7 @@ class Probe(metrics.Probe):
 		for factor, pyc in frames.items():
 			src = str(pyc[-1][0])
 			with open(src) as f:
-				tree, nodes = source.parse(f.read(), src, filter=instrumentation.visit)
+				srclines, tree, nodes = source.parse(f.read(), src, filter=instrumentation.visit)
 
 			selector = ((node, instrumentation.delineate(node)) for node in nodes)
 			data[src] = {
