@@ -35,18 +35,12 @@ def test_Collector(test):
 	# Exercise basic functionality by simulating events.
 	"""
 
-	cd = list()
-	ch = itertools.count()
-	CC = module.instr.Collector(cd.append, ch.__next__)
-
 	pd = list()
 	ph = itertools.count()
 	PC = module.Collector(pd.append, ph.__next__)
 
-	traced_call(CC); traced_call(PC)
-
+	traced_call(PC)
 	test/pd != []
-	test/cd != []
 
 events = [
 	(('test/test_trace.py', 22, 30, 'test_collection'), 2, 0),
