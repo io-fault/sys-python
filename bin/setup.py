@@ -151,29 +151,12 @@ def instruments(args, fault, ctx, ctx_route, ctx_params, domain):
 	"""
 	# Initialize the instrumentation tooling for instruments contexts.
 	"""
+	from .. import coverage
 	imp = python.Import.from_fullname(__package__).container
 	tmpl_path = imp.file().container / 'templates' / 'context.txt'
 
 	instantiate_software(ctx_route, 'f_intention', tool_name, tmpl_path, 'metrics')
-
-	# Register tool and probe constructor.
-	from .. import coverage
-	data = {
-		'python-controller': '.'.join((coverage.__name__, coverage.Probe.__qualname__)),
-	}
-
-	return {
-		domain: {
-			'transformations': {
-				'python': {
-					'metrics': tool_name,
-				}
-			},
-		},
-		'metrics': {
-			tool_name: data,
-		}
-	}
+	return {}
 
 def install(args, fault, ctx, ctx_route, ctx_params):
 	"""
