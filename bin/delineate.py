@@ -5,6 +5,7 @@ import sys
 import ast
 import functools
 import typing
+import itertools
 
 from fault.system import process
 from fault.system import files
@@ -331,6 +332,26 @@ class Switch(comethod.object):
 			reference = name
 		)
 
+	def inherited_base(self, fragment):
+		"""
+		# Construct an element type node from a class' base expression.
+		"""
+		syntax = fragment.syntax()
+
+		# If it's a simple name or attribute series, provide a reference attribute.
+		try:
+			ids = list(read_name(fragment.node))
+			name = '.'.join(reversed(ids)) or None
+		except ValueError:
+			name = None
+
+		return self.element('type',
+			[],
+			*self.attributes(fragment),
+			syntax = syntax,
+			reference = name
+		)
+
 	@comethod('data')
 	def extract_assignment(self, fragment):
 		if fragment.ancestor.abstract_type not in {'module', 'class'}:
@@ -444,8 +465,13 @@ class Switch(comethod.object):
 		)
 
 	@comethod('import')
-	def extract_import(self, fragment, prefix=None, depth=None):
+	def extract_import(self, fragment, prefix=[], depth=None):
 		isnode = fragment.node
+
+		if depth is not None:
+			qfp = self.factor[:-depth]
+		else:
+			qfp = None
 
 		for isname in isnode.names:
 			# Potentially multiple import elements for each statement.
@@ -454,23 +480,20 @@ class Switch(comethod.object):
 			if isname.asname is not None:
 				# Element identifier is the target name.
 				import_id = isname.asname
-				offset = import_id.find('.')
-				if offset > -1:
-					path = import_id.split('.')
-					import_id = import_id[:offset]
-				else:
-					path = [import_id]
+				path = isname.name.split('.')
 			else:
 				# Otherwise, element identifier is the *first* field.
 				import_id, *path = isname.name.split('.')
 				path.insert(0, import_id)
 
+			ipath = prefix + path if prefix else path
 			yield from self.element('import',
 				(),
 				('identifier', import_id),
-				path = prefix + path if prefix else path,
+				path = ipath,
 				area = fragment.area,
 				relative = depth,
+				factor = qfp + ipath if qfp is not None else None,
 			)
 
 	@comethod('import-from')
@@ -483,10 +506,21 @@ class Switch(comethod.object):
 
 		return self.extract_import(fragment, prefix=prefix, depth=isnode.level)
 
+	def inheritance(self, fragment):
+		return self.element('inheritance',
+			itertools.chain.from_iterable(
+				self.inherited_base(fragment.subnode(node, None))
+				for node in fragment.node.bases
+			)
+		)
+
 	@comethod('class')
 	def extract_class(self, fragment):
 		return self.element('class',
-			self.descend(fragment),
+			itertools.chain(
+				self.inheritance(fragment),
+				self.descend(fragment),
+			),
 			*self.attributes(fragment)
 		)
 
@@ -498,7 +532,8 @@ class Switch(comethod.object):
 		for f in fragment.descend():
 			yield from self.comethod(f.abstract_type)(f)
 
-	def __init__(self):
+	def __init__(self, factor):
+		self.factor = factor
 		self.documentation = {}
 		self.data = {}
 
@@ -525,7 +560,13 @@ def main(inv:process.Invocation) -> process.Exit:
 	target, source, *defines = inv.args # (output-directory, source-file-path)
 	root = load(source, source)
 
-	s = Switch()
+	srcarg = dict(zip(defines[0::2], defines[1::2]))
+	try:
+		fpath = srcarg['FACTOR_QNAME'].split('.')
+	except KeyError:
+		fpath = []
+
+	s = Switch(fpath)
 	x, = s.comethod('module')(root)
 	x[2]['source-encoding'] = 'utf-8'
 
