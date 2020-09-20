@@ -468,11 +468,6 @@ class Switch(comethod.object):
 	def extract_import(self, fragment, prefix=[], depth=None):
 		isnode = fragment.node
 
-		if depth is not None:
-			qfp = self.factor[:-depth]
-		else:
-			qfp = None
-
 		for isname in isnode.names:
 			# Potentially multiple import elements for each statement.
 			# import a as x, b as y
@@ -490,10 +485,10 @@ class Switch(comethod.object):
 			yield from self.element('import',
 				(),
 				('identifier', import_id),
-				path = ipath,
 				area = fragment.area,
+				path = ipath,
 				relative = depth,
-				factor = qfp + ipath if qfp is not None else None,
+				factor = True, # A maybe. Aligns with factor paths.
 			)
 
 	@comethod('import-from')
