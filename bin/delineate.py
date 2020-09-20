@@ -154,7 +154,7 @@ class Fragment(object):
 			len(src[el-1]) if src else 0
 		)
 
-	@functools.lru_cache(16)
+	@cachedcalls(16)
 	def source(self):
 		"""
 		# Access the source lines from the root Fragment containing the module.
@@ -310,12 +310,11 @@ class Switch(comethod.object):
 			('area', fragment.area),
 		]
 
-	def annotation_type(self, fragment):
+	def annotation_type(self, fragment, node):
 		"""
 		# Construct an element type node from the annotation of the &fragment.
 		"""
-		ann = fragment.node.annotation
-		f = fragment.subnode(ann, None)
+		f = fragment.subnode(node, None)
 		syntax = f.syntax().lstrip(":").rstrip(",")
 
 		# If it's a simple name or attribute series, provide a reference attribute.
@@ -359,7 +358,7 @@ class Switch(comethod.object):
 			return ()
 
 		try:
-			dtype = self.annotation_type(fragment)
+			dtype = self.annotation_type(fragment, fragment.node.annotation)
 			name, constant = fragment.read_ann_assign()
 		except AttributeError:
 			dtype = ()
@@ -387,7 +386,7 @@ class Switch(comethod.object):
 	def annotate(self, fragment):
 		if fragment.node.annotation is None:
 			return ()
-		return self.annotation_type(fragment)
+		return self.annotation_type(fragment, fragment.node.annotation)
 
 	def parameters_v1(self, fragment):
 		args = fragment.node.args
@@ -434,13 +433,10 @@ class Switch(comethod.object):
 
 	def effects(self, fragment):
 		rtype = fragment.node.returns
-
 		if rtype is not None:
-			rtype = fragment.subnode(rtype, None)
-			yield from self.element('type',
-				[],
-				('syntax', rtype.syntax())
-			)
+			return self.annotation_type(fragment, rtype)
+
+		return ()
 
 	def signature(self, fragment):
 		yield from self.effects(fragment)
