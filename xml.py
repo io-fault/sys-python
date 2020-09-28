@@ -22,7 +22,6 @@ from fault.system import files
 
 from fault.web import xml as libxml
 from fault.xml import python as xep
-from fault.text import library as libtext
 
 from ...export import comments
 
@@ -343,7 +342,7 @@ class Context(object):
 				)
 			else:
 				yield from libxml.element('doc',
-					libtext.XML.transform('txt:', doc, identify=prefix.__add__),
+					XML.transform('txt:', doc, identify=prefix.__add__),
 				)
 
 	def d_import(self, context_module, imported, *path):
