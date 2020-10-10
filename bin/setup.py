@@ -147,9 +147,9 @@ def delineation(domain, system, architecture):
 		},
 	}
 
-def instruments(args, fault, ctx, ctx_route, ctx_params, domain):
+def coverage(args, fault, ctx, ctx_route, ctx_params, domain):
 	"""
-	# Initialize the instrumentation tooling for instruments contexts.
+	# Initialize the tooling for coverage contexts.
 	"""
 	from .. import coverage
 	imp = python.Import.from_fullname(__package__).container
@@ -178,8 +178,8 @@ def install(args, fault, ctx, ctx_route, ctx_params):
 		data = compilation(domain_id, host_system, arch)
 		ccd.update_named_mechanism(mechfile, 'root', {domain_id: data})
 
-		if ctx_intention == 'instruments':
-			layer = instruments(args, fault, ctx, ctx_route, ctx_params, domain_id)
+		if ctx_intention == 'coverage':
+			layer = coverage(args, fault, ctx, ctx_route, ctx_params, domain_id)
 			ccd.update_named_mechanism(mechfile, 'instrumentation-control', layer)
 
 	ccd.update_named_mechanism(mechfile, 'path-setup', {'context': {'path': [domain_id]}})
