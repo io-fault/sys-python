@@ -151,7 +151,6 @@ def coverage(args, fault, ctx, ctx_route, ctx_params, domain):
 	"""
 	# Initialize the tooling for coverage contexts.
 	"""
-	from .. import coverage
 	imp = python.Import.from_fullname(__package__).container
 	tmpl_path = imp.file().container / 'templates' / 'context.txt'
 
