@@ -71,8 +71,6 @@ def instantiate_software(dst, package, name, template, type, fault='fault'):
 def compilation(domain, system, architecture):
 	"""
 	# Generate mechanisms for compiling Python libraries.
-	# This domain only supports one-to-one source-to-target compilation,
-	# and used by (factor/type)`factor.directory` records.
 	"""
 	from . import compile
 
@@ -85,6 +83,8 @@ def compilation(domain, system, architecture):
 			# Effectively copy source files as &.bin.compile
 			# takes Python source.
 			'python': templates.Projection,
+			'v3': templates.Projection,
+			'v3.10': templates.Projection,
 		},
 
 		'integrations': {
@@ -134,7 +134,10 @@ def delineation(domain, system, architecture):
 		},
 
 		'transformations': {
+			'v3.10': templates.Inherit('tool:pyd-subprocess'),
+			'v3': templates.Inherit('tool:pyd-subprocess'),
 			'python': templates.Inherit('tool:pyd-subprocess'),
+
 			'tool:pyd-subprocess': {
 				'method': 'python',
 				'command': __package__ + '.delineate',
