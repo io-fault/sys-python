@@ -70,7 +70,6 @@
 			PyModule_AddObject(MODULE, "__PYTHON_RECEPTACLE__", __PYTHON_RECEPTACLE__); \
 		}
 #else
-	/* Optimal and Debug intentions. */
 	#define DEFINE_MODULE_GLOBALS
 	#define INIT_MODULE_GLOBALS(MODULE) do {} while(0)
 	#define DROP_MODULE_GLOBALS() do {} while(0)

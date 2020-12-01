@@ -10,7 +10,7 @@ extern PyObj __PYTHON_RECEPTACLE__;
 	# Reclaiming the GIL is rather time consuming in some contexts,
 	# so if the dictionary is zero, don't bother.
 
-	#!/pl/c
+	#!syntax/c
 		ERRNO_RECEPTACLE(0, &r, open, ...)
 		if (r == 0)
 		{
