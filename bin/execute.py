@@ -20,7 +20,7 @@ def prepare(exectype, path, execargs):
 
 	finder = None
 	if os.environ.get('PYTHONIMPORTREDIRECTS', None) is not None:
-		from ....factors import testing
+		from sdk.factors import testing
 		finder = testing.RedirectFinder.inherit()
 		exits.enter_context(finder.redirection())
 

@@ -31,8 +31,7 @@ def coverable(tree, hasattr=hasattr):
 	# Used by Python coverage reporting tools to identify coverage percentage.
 
 	# [ Engineering ]
-	# Currently does not extract exact expression ranges. Future revisions will
-	# need information similar to what &..tools.llvm provides.
+	# Currently does not extract exact expression ranges.
 	"""
 	seq = set()
 	add = seq.add

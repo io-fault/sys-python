@@ -19,7 +19,7 @@ from fault.system import python
 from fault.system import files
 from fault.system import identity
 
-from ...tools.python.bytecode import serialize_timestamp_checked
+from ..bytecode import serialize_timestamp_checked
 
 try:
 	import importlib.util

@@ -12,11 +12,11 @@ from fault.system import process
 from fault.system import files
 from fault.system import python
 
-from ...context import templates
-from ...context import constructors
+from sdk.tools.context import templates
+from sdk.tools.context import constructors
 
-from ....factors import cc
-from ....factors import data as ccd
+from sdk.factors import cc
+from sdk.factors import data as ccd
 
 tool_name = 'python'
 name = 'fault.python'

@@ -72,5 +72,5 @@ events = [
 ]
 
 if __name__ == '__main__':
-	from .. import libtest; import sys
-	libtest.execute(sys.modules[__name__])
+	from fault.test import engine as test; import sys
+	test.execute(sys.modules[__name__])
