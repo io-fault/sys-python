@@ -3,14 +3,13 @@
 		&<http://if.fault.io/project/information>
 
 /identifier/
-	&<http://fault.io/engineering/tools.python>
+	&<http://fault.io/integration/python>
 /icon/
-	- (emoji)`🔧`
+	- (emoji)`🐍`
 /name/
 	`python`
 /abstract/
-	Python compilation, delineation, and coverage tools
-
+	C-API and bytecode tooling for Python dependent builds.
 /authority/
 	`fault.io`
 /contact/
