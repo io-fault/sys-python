@@ -7,7 +7,7 @@
 
 # Common usage:
 
-#!/pl/python
+#!syntax/python
 	collector, events = trace.prepare()
 	with collector:
 		...

@@ -7,7 +7,7 @@ due to customized user sites and (system/envvar)`PYTHONPATH`.
 Two intiialization levels are available for configuration. The first is used for installing custom
 loaders and the second is for executing desired prerequisites for the primary entry point.
 
-/heading/#!/pl/c
+/heading/#!syntax/c
 	#include <Python.h>
 	#include <sysexits.h>
 	#include <unistd.h>
@@ -35,7 +35,7 @@ loaders and the second is for executing desired prerequisites for the primary en
 		#define OPTION_ACTIVATION_SYMBOL "activate"
 	#endif
 
-/initialize-application-context/#!/pl/c
+/initialize-application-context/#!syntax/c
 	/**
 		// Disable most environment based configuration.
 	*/
@@ -72,7 +72,7 @@ loaders and the second is for executing desired prerequisites for the primary en
 		Py_DontWriteBytecodeFlag = 1;
 	}
 
-/allocate/#!/pl/c
+/allocate/#!syntax/c
 	/**
 		// Allocate and convert system arguments for loading sys.argv as bin/python would.
 	*/
@@ -104,13 +104,13 @@ loaders and the second is for executing desired prerequisites for the primary en
 		return(wargv);
 	}
 
-/main-open/#!/pl/c
+/main-open/#!syntax/c
 	static wchar_t executable_path[] = LSTR(PYTHON_EXECUTABLE_PATH);
 	int
 	main(int argc, char *argv[])
 	{
 
-/main/#!/pl/c
+/main/#!syntax/c
 	/**
 		// SIGUSR1 is used to signal initialization or bootstrap exceptions.
 		// SIGUSR2 is used to designate that a python initialization error occurred.
@@ -303,5 +303,5 @@ loaders and the second is for executing desired prerequisites for the primary en
 	Py_Exit(r);
 	return(r);
 
-/main-close/#!/pl/c
+/main-close/#!syntax/c
 	}
