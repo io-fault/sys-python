@@ -11,13 +11,13 @@ import os
 import sys
 import marshal
 
-from fault.project import library as libproject
 from fault.project import explicit
 
 from fault.system import process
 from fault.system import python
 from fault.system import files
 from fault.system import identity
+from fault.system.factors import compose_image_path
 
 from ..bytecode import serialize_timestamp_checked
 
@@ -75,7 +75,7 @@ def main(inv:process.Invocation) -> process.Exit:
 				name, *ext = src.identifier.split('.')
 				var = {'name': name}
 				var.update(py_variants)
-				segment = libproject.compose_integral_path(var)
+				segment = compose_image_path(var)
 
 				i = (src * '__f-int__') + segment
 				if intention is not None:
@@ -107,7 +107,7 @@ def main(inv:process.Invocation) -> process.Exit:
 
 			var = {'name': fpath[-1]}
 			var.update(os_variants)
-			segment = libproject.compose_integral_path(var)
+			segment = libproject.compose_image_path(var)
 
 			i = prefix + segment
 			if intention is not None:
