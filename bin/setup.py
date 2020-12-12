@@ -12,11 +12,9 @@ from fault.system import process
 from fault.system import files
 from fault.system import python
 
-from sdk.tools.context import templates
-from sdk.tools.context import constructors
-
-from sdk.factors import cc
-from sdk.factors import data as ccd
+from ...factors import constructors
+from ...factors import cc
+from ...factors import data as ccd
 
 tool_name = 'python'
 name = 'fault.python'
@@ -82,13 +80,13 @@ def compilation(domain, system, architecture):
 		'transformations': {
 			# Effectively copy source files as &.bin.compile
 			# takes Python source.
-			'python': templates.Projection,
-			'v3': templates.Projection,
-			'v3.10': templates.Projection,
+			'python': constructors.Projection,
+			'v3': constructors.Projection,
+			'v3.10': constructors.Projection,
 		},
 
 		'integrations': {
-			'python-module': templates.Inherit('tool:pyc-subprocess'),
+			'python-module': constructors.Inherit('tool:pyc-subprocess'),
 
 			'tool:pyc-local': {
 				'method': 'internal',
@@ -134,9 +132,9 @@ def delineation(domain, system, architecture):
 		},
 
 		'transformations': {
-			'v3.10': templates.Inherit('tool:pyd-subprocess'),
-			'v3': templates.Inherit('tool:pyd-subprocess'),
-			'python': templates.Inherit('tool:pyd-subprocess'),
+			'v3.10': constructors.Inherit('tool:pyd-subprocess'),
+			'v3': constructors.Inherit('tool:pyd-subprocess'),
+			'python': constructors.Inherit('tool:pyd-subprocess'),
 
 			'tool:pyd-subprocess': {
 				'method': 'python',
@@ -146,7 +144,7 @@ def delineation(domain, system, architecture):
 		},
 
 		'integrations': {
-			'python-module': templates.Clone,
+			'python-module': constructors.Clone,
 		},
 	}
 
