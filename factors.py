@@ -1,16 +1,22 @@
 """
-# Module finder and loader for Factored Projects.
-
-# [ Engineering ]
-# Currently, the finder can load extensions, but it will not properly
-# modify paths in leading packages so that they can be found.
+# Module finder and loader for Python factors using polynomial-1.
 """
+import os
+import stat
+import sys
 import importlib.machinery
 
-from . import files
-from . import identity
+from os.path import dirname
+from os.path import join
+from os import stat as fs_stat
 
-from ..project import root
+def ftype(path, fs_typemap = {stat.S_IFREG: 'data', stat.S_IFDIR: 'directory'}):
+	try:
+		s = fs_stat(path)
+	except:
+		return 'void'
+
+	return fs_typemap.get(stat.S_IFMT(s.st_mode), 'other')
 
 def compose_image_path(variants, default='void', groups=[["system", "architecture"], ["name"]]):
 	"""
@@ -86,7 +92,6 @@ class IntegralFinder(object):
 		"""
 		# Initialize a finder instance for use with the given variants.
 		"""
-		self.context = root.Context()
 		self.index = dict()
 		self.groups = groups
 		self.integral_container_name = integral_container_name
@@ -104,7 +109,6 @@ class IntegralFinder(object):
 
 	@staticmethod
 	def _init_segment(groups, variants):
-		from ..route.types import Segment
 		v = dict(variants)
 		v['name'] = '{0}'
 
@@ -113,20 +117,21 @@ class IntegralFinder(object):
 		final = segments[-1] + '.i'
 		del segments[-1]
 
-		leading = Segment.from_sequence(segments)
 		assert '{0}' in final # &groups must have 'name' in the final path identifier.
+		return segments, final, final.format
 
-		return leading, final, final.format
-
-	def connect(self, route:files.Path):
+	def connect(self, route, *, roots=()):
 		"""
 		# Add the route to finder connecting its subdirectories for import purposes.
 
 		# Similar to adding a filesystem path to Python's &sys.path.
 		"""
 
-		pd = self.context.connect(route)
-		self.index.update((x, pd) for x in map(str, pd.roots) if x not in self.index)
+		if not roots:
+			with open(join(route, '.product', 'ROOTS')) as f:
+				roots = f.read().split('\n')
+
+		self.index.update((x, route) for x in roots if x not in self.index)
 		return self
 
 	def disconnect(self, route):
@@ -135,32 +140,13 @@ class IntegralFinder(object):
 		"""
 
 		keys = []
-		pds = set()
 
 		for k, v in self.index:
-			if v.route == route:
+			if v == route:
 				keys.append(k)
-				pds.add(v)
 
 		for k in keys:
 			del self.index[k]
-
-		for pd in pds:
-			self.context.product_sequence.remove(pd)
-
-		ids = set()
-		for key, instance in self.context.instance_cache.items():
-			typ, id = key
-			if typ == 'project':
-				pd = instance.product
-			else:
-				pd = instance
-
-			if pd in pds:
-				ids.add(key)
-
-		for key in ids:
-			del self.context.instance_cache[key]
 
 		return self
 
@@ -199,82 +185,84 @@ class IntegralFinder(object):
 		pd = self.find(name)
 		if pd is None:
 			return None
+		rlen = len(pd)
 
-		route = pd.route + name.split('.')
-		ftype = route.fs_type()
-		parent = route.container
+		ipath = name.split('.')
+		route = join(pd, *ipath)
+		parent = dirname(route)
+		final = ipath[-1]
 
-		final = route.identifier
+		typ = ftype(route)
 		pkg = False
 
-		if ftype == 'void':
+		if typ == 'void':
 			# Check for `extensions` factor.
-
 			cur = parent
-			while (cur/'extensions').fs_type() == 'void':
-				cur = cur.container
-				if str(cur) in (str(pd.route), '/'):
-					# No extensions.
+			exts = join(cur, 'extensions')
+			while ftype(exts) == 'void':
+				cur = dirname(cur)
+				exts = join(cur, 'extensions')
+				if len(cur) <= rlen or cur == '/':
+					# No extensions directory.
 					break
 			else:
-				xpath = route.segment(cur)
-				exts = cur/'extensions'
-				ints = parent/self.integral_container_name
-				rroute = exts//ints.segment(cur)
-				extfactor = exts//xpath
+				# Found an extensions directory.
+				# Check for C-API module.
 
-				if extfactor.fs_type() != 'void':
+				xpath = route[len(cur)+1:]
+				ints = join(parent, self.integral_container_name)
+				rroute = join(exts, ints[len(cur)+1:])
+				extfactor = join(exts, xpath)
+
+				if ftype(extfactor) != 'void':
 					# .extension entry is present
 					leading, filename, fformat = self._ext
-					path = rroute//leading/fformat(final)
+					path = join(rroute, *leading, fformat(final))
 
-					path = str(path)
 					l = self.ExtensionFileLoader(name, path)
 					spec = self.ModuleSpec(name, l, origin=path, is_package=False)
 					return spec
 
-		if ftype == 'directory':
+		if typ == 'directory':
 			# Not an extension; path is selecting a directory.
 			pkg = True
-			pysrc = route / '__init__.py'
-			module__path__ = str(pysrc.container)
+			pysrc = join(route, '__init__.py')
+			module__path__ = route
 			final = '__init__'
-			idir = route / self.integral_container_name
+			idir = join(route, self.integral_container_name)
 
-			if pysrc.fs_type() == 'void':
+			if ftype(pysrc) == 'void':
 				# Handle context enclosure case.
-				ctx = (route/'context')
-				if ctx.fs_type() == 'void':
+				ctx = join(route, 'context')
+				if ftype(ctx) == 'void':
 					return None
 
-				module__path__ = str(route)
-				pysrc = ctx/'root.py'
+				module__path__ = route
+				pysrc = join(ctx, 'root.py')
 				final = 'root'
-				idir = pysrc * self.integral_container_name
-			else:
-				module__path__ = str(pysrc.container)
+				idir = join(ctx, self.integral_container_name)
 
 			origin = str(pysrc)
 		else:
 			# Regular Python module or nothing.
-			idir = parent / self.integral_container_name
+			idir = join(parent, self.integral_container_name)
 			for x in self.suffixes:
-				pysrc = route.suffix_filename(x)
-				if pysrc.fs_type() == 'data':
+				pysrc = route + x
+				if ftype(pysrc) == 'data':
 					break
 			else:
 				# No recognized sources.
 				return None
 
-			module__path__ = str(pysrc.container)
-			origin = str(pysrc)
+			module__path__ = dirname(pysrc)
+			origin = pysrc
 
 		leading, filename, fformat = self._pbc
-		cached = idir//leading/fformat(final)
+		cached = join(idir, *leading, fformat(final))
 
-		l = self.Loader(str(cached), name, str(pysrc))
+		l = self.Loader(cached, name, pysrc)
 		spec = self.ModuleSpec(name, l, origin=origin, is_package=pkg)
-		spec.cached = str(cached)
+		spec.cached = cached
 
 		if pkg:
 			spec.submodule_search_locations = [module__path__]
@@ -282,24 +270,23 @@ class IntegralFinder(object):
 		return spec
 
 	@classmethod
-	def create(Class, intention, rxctx=None):
+	def create(Class, intention, system, architecture):
 		"""
 		# Construct a standard loader selecting integrals with the given &intention.
 		"""
 
-		if rxctx is None:
-			rxctx = identity.root_execution_context()
-		sys, arc = rxctx
+		python_id = sys.implementation.name + ''.join(map(str, sys.version_info[:2]))
+		python_id = python_id.replace('-', '')
 
 		bc = {
-			'system': sys,
-			'architecture': identity._python_architecture,
+			'system': system,
+			'architecture': python_id,
 			'intention': intention,
 		}
 
 		ext = {
-			'system': sys,
-			'architecture': arc,
+			'system': system,
+			'architecture': architecture,
 			'intention': intention,
 		}
 
@@ -307,14 +294,23 @@ class IntegralFinder(object):
 
 		return Class(g, bc, ext)
 
+	@classmethod
+	def default(Class, intention='debug'):
+		"""
+		# Create the default finder using the environment.
+		"""
+		sys_id = os.environ.get('FCI_SYSTEM', '').strip()
+		mach_id = os.environ.get('FCI_ARCHITECTURE', '').strip()
+		u = os.uname()
+		return Class.create(intention, sys_id or u.sysname.lower(), mach_id or u.machine)
+
 def activate(intention='debug', paths=None):
 	"""
 	# Install loaders for the (envvar)`FACTORPATH` products.
 	"""
 	global Activated
-	import os
 
-	sfif = IntegralFinder.create(intention)
+	sfif = IntegralFinder.default(intention)
 	Activated = sfif
 	if paths is None:
 		paths = os.environ.get('FACTORPATH', '').split(':')
@@ -323,8 +319,6 @@ def activate(intention='debug', paths=None):
 		if not x:
 			# Ignore empty fields.
 			continue
-		x = files.Path.from_absolute(x)
 		sfif.connect(x)
 
-	import sys
 	sys.meta_path.insert(0, sfif)
