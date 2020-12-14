@@ -1,3 +1,7 @@
+! CONTEXT:
+	/protocol/
+		&<http://if.fault.io/text/composition>
+
 [executable]
 
 C fragments providing a customized Python entry point. Desired in cases
@@ -28,7 +32,8 @@ loaders and the second is for executing desired prerequisites for the primary en
 
 	#define _PREFIX(X,STRING) X##STRING
 	#define LSTR(STRING) _PREFIX(L,STRING)
-	#define log(category, message, ...) fprintf(stderr, "[!* " category ": " message "]\n", ##__VA_ARGS__)
+	#define log(category, message, ...) \
+		fprintf(stderr, "[!* " category ": " message "]\n", ##__VA_ARGS__)
 	#define panic() do {signal(SIGUSR2, SIG_DFL); kill(getpid(), SIGUSR2);} while(0)
 
 	#ifndef OPTION_ACTIVATION_SYMBOL
@@ -153,13 +158,17 @@ loaders and the second is for executing desired prerequisites for the primary en
 
 	PySys_SetArgvEx(argc, wargv, 0);
 
-	PyEval_InitThreads();
-	if (!PyEval_ThreadsInitialized())
+	#if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 7) || PY_MAJOR_VERSION < 3
 	{
-		log("ERROR", "could not initialize threading");
-		panic();
-		return(EX_SOFTWARE);
+		PyEval_InitThreads();
+		if (!PyEval_ThreadsInitialized())
+		{
+			log("ERROR", "could not initialize threading");
+			panic();
+			return(EX_SOFTWARE);
+		}
 	}
+	#endif
 
 	ob = PySys_GetObject("path");
 	if (ob == NULL)
