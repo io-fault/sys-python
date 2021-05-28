@@ -13,12 +13,17 @@ loaders and the second is for executing desired prerequisites for the primary en
 
 /heading/#!syntax/c
 	#include <Python.h>
+	#include <marshal.h>
 	#include <sysexits.h>
 	#include <unistd.h>
 	#include <signal.h>
 
 	#ifdef __FreeBSD__
 		#include <fenv.h>
+	#endif
+
+	#ifndef FAULT_CONTEXT_NAME
+		#define FAULT_CONTEXT_NAME "fault"
 	#endif
 
 	#ifdef _FAULT_INVOCATION
@@ -32,12 +37,52 @@ loaders and the second is for executing desired prerequisites for the primary en
 
 	#define _PREFIX(X,STRING) X##STRING
 	#define LSTR(STRING) _PREFIX(L,STRING)
+	#define QUOTE(FIELD) #FIELD
 	#define log(category, message, ...) \
 		fprintf(stderr, "[!* " category ": " message "]\n", ##__VA_ARGS__)
 	#define panic() do {signal(SIGUSR2, SIG_DFL); kill(getpid(), SIGUSR2);} while(0)
 
-	#ifndef OPTION_ACTIVATION_SYMBOL
-		#define OPTION_ACTIVATION_SYMBOL "activate"
+	#ifndef CONTROL_ACTIVATION_SYMBOL
+		#define CONTROL_ACTIVATION_SYMBOL "activate"
+	#endif
+
+	#ifndef FACTOR_SYSTEM
+		#define F_SYSTEM_STR
+	#endif
+
+	#ifndef FACTOR_MACHINE
+		#define FACTOR_MACHINE F_TARGET_ARCHITECTURE_STR
+	#endif
+
+	#ifndef FACTOR_PYTHON
+		#define FACTOR_PYTHON "cpython" QUOTE(PY_MAJOR_VERSION) QUOTE(PY_MINOR_VERSION)
+	#endif
+
+	#ifndef FACTOR_INTEGRALS
+		#define FACTOR_INTEGRALS "__f-int__"
+	#endif
+
+	#ifndef FACTOR_INTENTION
+		#define FACTOR_INTENTION "optimal"
+	#endif
+
+	#ifndef FAULT_INTENTION
+		#define FAULT_INTENTION "optimal"
+	#endif
+
+	#define FAULT_CONTEXT_PATH FAULT_PYTHON_PRODUCT "/" FAULT_CONTEXT_NAME
+	#define FAULT_SYSTEM_PATH FAULT_CONTEXT_PATH "/system"
+	#define PYTHON_INTEGRALS FACTOR_SYSTEM "-" FACTOR_PYTHON
+
+	#ifndef FAULT_BOOTSTRAP_SOURCE
+		#define FAULT_BOOTSTRAP_SOURCE \
+			(FAULT_SYSTEM_PATH "/bootstrap.py")
+	#endif
+
+	#ifndef FAULT_BOOTSTRAP_BYTECODE
+		#define FAULT_BOOTSTRAP_BYTECODE \
+			(FAULT_SYSTEM_PATH "/" FACTOR_INTENTION "/" PYTHON_INTEGRALS \
+			"/bootstrap." FACTOR_INTENTION ".i")
 	#endif
 
 /initialize-application-context/#!syntax/c
@@ -77,6 +122,82 @@ loaders and the second is for executing desired prerequisites for the primary en
 		Py_DontWriteBytecodeFlag = 1;
 	}
 
+/bootstrap-execution/#!syntax/c
+	/**
+		// Execute the bytecode or source for bootstrapping the factor loader.
+	*/
+	static PyObject *
+	bootstrap(const char *bytecode, const char *source)
+	{
+		FILE *fp;
+		PyObject *code, *r, *module, *exedict;
+
+		module = PyModule_New("__bootstrap__");
+		if (module == NULL)
+			return(NULL);
+		exedict = PyModule_GetDict(module);
+
+		if (PyModule_AddStringConstant(module, "__file__", source) != 0)
+		{
+			Py_DECREF(module);
+			return(NULL);
+		}
+
+		if (bytecode != NULL)
+		{
+			if (PyModule_AddStringConstant(module, "__cache__", bytecode) != 0)
+			{
+				Py_DECREF(module);
+				return(NULL);
+			}
+
+			fp = fopen(bytecode, "rb");
+			if (fp != NULL)
+			{
+				code = PyMarshal_ReadObjectFromFile(fp);
+				fclose(fp);
+
+				if (code != NULL)
+				{
+					r = PyEval_EvalCode(code, exedict, exedict);
+					Py_DECREF(code);
+
+					if (r != NULL)
+					{
+						/* Succesfully bootstrapped */
+						Py_DECREF(r);
+						return(module);
+					}
+
+					/* Execute source instead */
+					PyErr_Clear();
+				}
+			}
+		}
+
+		fp = fopen(source, "rb");
+		if (fp == NULL)
+		{
+			/* Source could not be opened */
+			Py_DECREF(module);
+			return(NULL);
+		}
+
+		r = PyRun_File(fp, source, Py_file_input, exedict, exedict);
+		fclose(fp);
+		fp = NULL;
+
+		if (r != NULL)
+		{
+			Py_DECREF(r);
+			return(module);
+		}
+
+		/* Source execution failed. */
+		Py_DECREF(module);
+		return(NULL);
+	}
+
 /allocate/#!syntax/c
 	/**
 		// Allocate and convert system arguments for loading sys.argv as bin/python would.
@@ -84,11 +205,11 @@ loaders and the second is for executing desired prerequisites for the primary en
 	static wchar_t **
 	aalloc(int argc, char *argv[])
 	{
-		int r;
+		int i, r;
 		size_t nbytes;
 		wchar_t **wargv;
 
-		nbytes = sizeof(wchar_t *) * (argc+1);
+		nbytes = sizeof(wchar_t *) * (argc + 1 + ARGUMENT_COUNT);
 		wargv = PyMem_RawMalloc(nbytes);
 		if (wargv == NULL)
 		{
@@ -96,15 +217,24 @@ loaders and the second is for executing desired prerequisites for the primary en
 			return(NULL);
 		}
 
-		for (r = 0; r < argc; ++r)
-		{
-			wargv[r] = Py_DecodeLocale(argv[r], NULL);
-			if (wargv[r] == NULL)
+		i = 0;
+		#define ARGUMENT(ARGSTR) \
+			wargv[i] = Py_DecodeLocale(ARGSTR, NULL); \
+			if (wargv[i] == NULL) \
+			{ \
+				log("ERROR", "could not decode system arguments for application"); \
+				return(NULL); \
+			} \
+			++i;
+
+			/* Constants first then actual arguments */
+			ARGUMENT(argv[0]);
+			ARGUMENTS
+			for (r = 1; r < argc; ++r)
 			{
-				log("ERROR", "could not decode system arguments for application");
-				return(NULL);
+				ARGUMENT(argv[r]);
 			}
-		}
+		#undef ARGUMENT
 
 		return(wargv);
 	}
@@ -156,7 +286,7 @@ loaders and the second is for executing desired prerequisites for the primary en
 		return(EX_SOFTWARE);
 	}
 
-	PySys_SetArgvEx(argc, wargv, 0);
+	PySys_SetArgvEx(argc+ARGUMENT_COUNT, wargv, 0);
 
 	#if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 7) || PY_MAJOR_VERSION < 3
 	{
@@ -178,34 +308,52 @@ loaders and the second is for executing desired prerequisites for the primary en
 		return(EX_SOFTWARE);
 	}
 
-	#ifdef PYTHON_OPTION_MODULES
+	#ifdef _FAULT_INVOCATION
 	{
-		PyObject *init_exit_object = NULL;
-		PyObject *option_module = NULL;
+		PyObject *boots, *factors;
 
-		#define INIT_PYTHON_OPTION(x) \
-			option_module = PyImport_ImportModule(x); \
-			if (option_module == NULL) { \
-				log("ERROR", "could not import option module"); \
-				PyErr_Print(); \
-				fflush(stderr); \
-				panic(); \
-				return(EX_SOFTWARE); \
-			} \
-			init_exit_object = PyObject_CallMethod(option_module, OPTION_ACTIVATION_SYMBOL, ""); \
-			Py_DECREF(option_module); \
-			if (init_exit_object == NULL) { \
-				log("ERROR", "option module (%s) activation raised exception", x); \
-				PyErr_Print(); \
-				fflush(stderr); \
-				panic(); \
-				return(EX_SOFTWARE); \
-			} \
-			else \
-				Py_DECREF(init_exit_object);
+		boots = bootstrap(FAULT_BOOTSTRAP_BYTECODE, FAULT_BOOTSTRAP_SOURCE);
+		if (boots == NULL)
+		{
+			log("ERROR", "could not bootstrap the factor loader");
+			PyErr_Print();
+			fflush(stderr);
+			panic();
+			return(EX_SOFTWARE);
+		}
 
-			PYTHON_OPTION_MODULES;
-		#undef INIT_PYTHON_OPTION
+		/* Product paths given as varargs. */
+		factors = PyObject_CallMethod(boots, "integrate",
+			#define FACTOR_PATH_STRING(x) "s"
+				"ssssssss"
+				FACTOR_PATH,
+			#undef FACTOR_PATH_STRING
+
+			FAULT_PYTHON_PRODUCT,
+			FAULT_CONTEXT_NAME,
+			FAULT_INTENTION,
+			FACTOR_INTEGRALS,
+			FACTOR_SYSTEM,
+			FACTOR_PYTHON,
+			FACTOR_MACHINE,
+			FACTOR_INTENTION
+
+			#define FACTOR_PATH_STRING(x) , x
+				FACTOR_PATH
+			#undef FACTOR_PATH_STRING
+		);
+		Py_DECREF(boots);
+
+		if (factors == NULL)
+		{
+			log("ERROR", "could not bootstrap the factor loader");
+			PyErr_Print();
+			fflush(stderr);
+			panic();
+			return(EX_SOFTWARE);
+		}
+
+		Py_DECREF(factors);
 	}
 	#endif
 
@@ -218,6 +366,38 @@ loaders and the second is for executing desired prerequisites for the primary en
 	}
 	else
 		Py_DECREF(mod);
+
+	#ifdef PYTHON_CONTROL_IMPORTS
+	{
+		PyObject *init_exit_object = NULL;
+		PyObject *control_module = NULL;
+
+		#define IMPORT(x) \
+			control_module = PyImport_ImportModule(x); \
+			if (control_module == NULL) { \
+				log("ERROR", "could not import control module"); \
+				PyErr_Print(); \
+				fflush(stderr); \
+				panic(); \
+				return(EX_SOFTWARE); \
+			} \
+			init_exit_object = PyObject_CallMethod(control_module, \
+				CONTROL_ACTIVATION_SYMBOL, "ss", TARGET_MODULE, DEFAULT_ENTRY_POINT); \
+			Py_DECREF(control_module); \
+			if (init_exit_object == NULL) { \
+				log("ERROR", "control module (%s) activation raised exception", x); \
+				PyErr_Print(); \
+				fflush(stderr); \
+				panic(); \
+				return(EX_SOFTWARE); \
+			} \
+			else \
+				Py_DECREF(init_exit_object);
+
+			PYTHON_CONTROL_IMPORTS;
+		#undef IMPORT
+	}
+	#endif
 
 	/**
 		// Main execution. Calls DEFAULT_ENTRY_POINT in TARGET_MODULE.
@@ -233,7 +413,8 @@ loaders and the second is for executing desired prerequisites for the primary en
 			_f_main = PyObject_GetAttrString(mod, DEFAULT_ENTRY_POINT);
 			if (_f_main == NULL)
 			{
-				log("ERROR", "could not get entry point from application module: " DEFAULT_ENTRY_POINT);
+				log("ERROR", "could not get entry point from "
+					"application module: " DEFAULT_ENTRY_POINT);
 				panic();
 				return(EX_SOFTWARE);
 			}
