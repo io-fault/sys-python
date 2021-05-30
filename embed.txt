@@ -12,6 +12,10 @@ Two intiialization levels are available for configuration. The first is used for
 loaders and the second is for executing desired prerequisites for the primary entry point.
 
 /heading/#!syntax/c
+	#ifdef __APPLE__
+		#include <TargetConditionals.h>
+	#endif
+
 	#include <Python.h>
 	#include <marshal.h>
 	#include <sysexits.h>
