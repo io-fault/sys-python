@@ -1,12 +1,18 @@
 """
-# Create the necessary preprocessor statements for building a bound Python executable.
+# Bind a system executable to a Python module factor.
 """
 import os
 import sys
+
 from fault.text.bin import cat
 from fault.system import files
+from fault.system import identity
+from fault.system import execution
+from fault.system import query
 
-def command(target, source, compiler='cc'):
+project_directory = (files.Path.from_absolute(__file__) ** 2)
+
+def compile_sc(target, source, include, compiler=None):
 	"""
 	# Construct the parameters to be used to compile and link the new executable according to
 	# (python/module)`sysconfig`.
@@ -14,20 +20,30 @@ def command(target, source, compiler='cc'):
 	import sysconfig
 
 	ldflags = tuple(sysconfig.get_config_var('LDFLAGS').split())
+	libdir = sysconfig.get_config_var('LIBDIR')
 	pyversion = sysconfig.get_config_var('VERSION')
 	pyabi = sysconfig.get_config_var('ABIFLAGS') or ''
 	pyspec = 'python' + pyversion + pyabi
 
-	return (
-		sysconfig.get_config_var('CC') or compiler, '-v',
-		'-ferror-limit=2', '-Wno-array-bounds',
-		'-o', target,
-	) + ldflags + (
+	if not compiler:
+		compiler = sysconfig.get_config_var('CC') or 'cc'
+
+	sysargv = [compiler, '-w', '-x', 'c', '-o', target]
+	sysargv.extend(ldflags)
+
+	if libdir:
+		rpath = '-Wl,-rpath,' + libdir
+		sysargv.append(rpath)
+
+	sysargv.extend([
 		'-I' + sysconfig.get_config_var('INCLUDEPY'),
-		'-L' + sysconfig.get_config_var('LIBDIR'),
+		'-I' + include,
+		'-L' + libdir,
 		'-l' + pyspec,
 		source,
-	)
+	])
+
+	return sysargv
 
 def _macrostr(func, string):
 	return func + '("' + string + '")'
@@ -45,10 +61,19 @@ requirements = [
 
 	'FACTOR_PATH_STR',
 	'FACTOR_PATH',
+	'FACTOR_SYSTEM',
+	'FACTOR_PYTHON',
+	'FACTOR_MACHINE',
+
+	'FAULT_PYTHON_PRODUCT',
+	'FAULT_CONTEXT_NAME',
 ]
 
 def chars(string):
 	return "','".join(string)
+
+def escape(s):
+	return s.replace('\\', '\\\\').replace('"', '\\"')
 
 def static_array_terminated(string):
 	return "'" + chars(string) + "', '\\000'"
@@ -64,12 +89,13 @@ def cpaths(paths):
 
 def ipaths(xmacro, paths):
 	if paths and (paths[0] or len(paths) > 1):
-		return "\\\n\t" + " \\\n\t".join([xmacro+'("%s")' %(x,) for x in paths])
+		return "\\\n\t" + " \\\n\t".join([xmacro+'("%s")' %(escape(x),) for x in paths])
 	else:
 		return ""
 
-def binding(struct, executable, target_module, entry_point, *argv):
-	system_context, machine_arch, fi, fault_location, products, control_imports, paths = struct
+def binding(platform, struct, executable, target_module, entry_point, *argv):
+	system, python, machine = platform
+	fi, fault_location, products, control_imports, paths = struct
 
 	extensions = []
 	values = [
@@ -83,25 +109,12 @@ def binding(struct, executable, target_module, entry_point, *argv):
 		ipaths('IMPORT', control_imports),
 		cpaths(products),
 		ipaths('FACTOR_PATH_STRING', products),
+		quoted(system),
+		quoted(python),
+		quoted(machine),
+		quoted(fault_location[0]),
+		quoted(fault_location[1]),
 	]
-
-	if fault_location is not None:
-		extensions.extend([
-			'FAULT_PYTHON_PRODUCT',
-			'FAULT_CONTEXT_NAME',
-		])
-		values.extend([
-			quoted(fault_location[0]),
-			quoted(fault_location[1]),
-		])
-
-	if system_context is not None:
-		extensions.append('FACTOR_SYSTEM')
-		values.append(quoted(system_context))
-
-	if machine_arch is not None:
-		extensions.append('FACTOR_MACHINE')
-		values.append(quoted(machine_arch))
 
 	if fi:
 		extensions.append('_FAULT_INVOCATION')
@@ -112,24 +125,18 @@ def binding(struct, executable, target_module, entry_point, *argv):
 		for (dname, define) in zip(requirements + extensions, values)
 	)
 
-# Determines how far processing should go.
-target_control = {
-	'-E': 'source',
-	'-c': 'object',
-	'-X': 'extension',
-	'-x': 'executable',
-}
-
-def options(argv):
-	fl = None
+def options(argv, symbol='main'):
+	fpd = files.Path.from_absolute(files.__file__) ** 3
+	fl = (str(fpd), 'fault')
 	fi = True
-	system_context = None
-	machine_arch = None
-	effect = 'source'
+	system, python = identity.python_execution_context()
+	machine = identity.root_execution_context()[1]
+	effect = 'executable'
 	products = []
 	options = []
 	paths = []
 	defines = []
+	verbose = 0
 	i = 0
 
 	for x, i in zip(argv, range(len(argv))):
@@ -148,32 +155,79 @@ def options(argv):
 		elif opt == '-P':
 			paths.append(x[2:])
 		elif opt == '-S':
-			system_context = x[2:]
-		elif opt == '-m':
-			machine_arch = x[2:]
+			system_name = x[2:]
+		elif opt == '-M':
+			machine = x[2:]
+		elif opt == '-x':
+			symbol = x[2:]
 		elif opt == '-D':
 			defines.append(tuple(x[2:].split('=', 1)))
-		elif opt in target_control:
-			effect = target_control[opt]
-			assert opt == x # Flag option has additional data.
+		elif opt == '-E':
+			effect = 'source'
+		elif opt == '-v':
+			verbose += 1
 		else:
 			break
 
-	struct = (system_context, machine_arch, fi, fl, products, options, sys.path+paths)
-	return effect, struct, argv[i:]
+	struct = (fi, fl, products, options, sys.path+paths)
+	platform = (system, python, machine)
+	return effect, verbose, symbol, platform, struct, argv[i:]
 
-def render(output):
-	effect, struct, argv = options(sys.argv[1:])
-	factor_path, call_name, *xargv = argv
+def render(output, factor_path, factor_argv, factor_element, platform, struct):
+	for sf in binding(platform, struct, sys.executable, factor_path, factor_element, *factor_argv):
+		output(sf.encode('utf-8'))
 
-	for sf in binding(struct, sys.executable, factor_path, call_name, *xargv):
-		output.write(sf)
-
-	sourcepath = (files.Path.from_path(__file__) ** 2)/'embed.txt'
+	sourcepath = project_directory / 'embed.txt'
 	data = cat.structure(sourcepath, 'executable')
 	for p in data.keys():
-		output.write(data[p])
+		output(data[p].encode('utf-8'))
+
+def main(sysargv):
+	effect, verbose, *config, rargv = options(sysargv[1:])
+	target_exe, factor_path, *factor_argv = rargv
+
+	if effect == 'source':
+		# Render the source that would have been compiled.
+		render(sys.stdout.buffer.write, factor_path, factor_argv, *config)
+		sys.exit(200)
+	else:
+		# Create executable.
+		assert effect == 'executable'
+
+		includes = str(project_directory / 'include' / 'src')
+		try:
+			xargv = compile_sc(target_exe, '/dev/stdin', includes, os.environ.get('CC') or None)
+		except ImportError:
+			raise
+
+		exe = xargv[0]
+		for exe in query.executables(exe):
+			break
+
+		if verbose:
+			sys.stderr.write(' '.join(xargv) + '\n')
+
+		r, w = os.pipe()
+		try:
+			compiler = execution.KInvocation(str(exe), list(xargv))
+			pid = compiler.spawn(fdmap=[(r, 0), (1, 1,), (2, 2)])
+			import io
+			output = io.FileIO(w, 'w')
+		except:
+			os.close(w)
+			raise
+		finally:
+			os.close(r)
+
+		try:
+			with output:
+				render(output.write, factor_path, factor_argv, *config)
+		finally:
+			rpid, status = os.waitpid(pid, 0)
+			sys.exit(os.WEXITSTATUS(status))
 
 if __name__ == '__main__':
-	render(sys.stdout)
-	sys.stdout.flush()
+	try:
+		main(sys.argv)
+	finally:
+		sys.stdout.flush()
