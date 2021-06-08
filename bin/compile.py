@@ -31,8 +31,9 @@ def subprocess_bytecode_compiler(
 	if intention in ('debug', 'instruments', 'injections'):
 		optimize = '0'
 
-	command = [None, filepath(output), filepath(inf), 'optimize', optimize, 'intention', intention]
-	return command
+	command = [None] + adapter['tool']
+	argv = [filepath(output), filepath(inf), 'optimize', optimize, 'intention', intention]
+	return command + argv
 
 def function_bytecode_compiler(
 		transform_mech,

@@ -15,6 +15,7 @@ from fault.system import python
 from ...factors import constructors
 from ...factors import cc
 from ...factors import data as ccd
+from ...root import query
 
 tool_name = 'python'
 name = 'fault.python'
@@ -45,28 +46,15 @@ def identification():
 	}
 
 def instantiate_software(dst, package, name, template, type, fault='fault'):
-	# Initiialize llvm instrumentation or delineation tooling inside the target context.
+	from fault.text.bin import ifst
 	ctxpy = dst / 'lib' / 'python'
+	return ifst.instantiate(
+		(ctxpy / package / name),
+		(template),
+		type,
+	)
 
-	command = [
-		"python3", "-m",
-		fault+'.text.bin.ifst',
-		str(ctxpy / package / name),
-		str(template), type,
-	]
-
-	pid, status, data = libexec.effect(libexec.KInvocation(sys.executable, command))
-	if status != 0:
-		sys.stderr.write("! ERROR: tool instantiation failed\n")
-		sys.stderr.write("\t/command/\n\t\t" + " ".join(command) + "\n")
-		sys.stderr.write("\t/status/\n\t\t" + str(status) + "\n")
-
-		sys.stderr.write("\t/message/\n")
-		sys.stderr.buffer.writelines(b"\t\t" + x + b"\n" for x in data.split(b"\n"))
-		sys.stderr.write("<- [%d]\n" %(pid,))
-		raise SystemExit(1)
-
-def compilation(domain, system, architecture):
+def compilation(domain, system, architecture, command):
 	"""
 	# Generate mechanisms for compiling Python libraries.
 	"""
@@ -88,19 +76,12 @@ def compilation(domain, system, architecture):
 		'integrations': {
 			'python-module': constructors.Inherit('tool:pyc-subprocess'),
 
-			'tool:pyc-local': {
-				'method': 'internal',
-				'name': 'pyc',
-				'interface': compile.__name__ + '.function_bytecode_compiler',
-				'command': __package__ + '.compile',
-			},
-
 			# Likely unused in cases where the executing Python is the target Python.
 			'tool:pyc-subprocess': {
-				'method': 'python',
-				'name': 'pyc',
 				'interface': compile.__name__ + '.subprocess_bytecode_compiler',
-				'command': __package__ + '.compile',
+				'factor': __package__ + '.compile',
+				'command': command,
+				'tool': ['compile-python-source'],
 			},
 		},
 
@@ -113,7 +94,7 @@ def compilation(domain, system, architecture):
 		},
 	}
 
-def delineation(domain, system, architecture):
+def delineation(domain, system, architecture, command):
 	"""
 	# Initialize the syntax tooling for delineation contexts.
 	"""
@@ -137,9 +118,10 @@ def delineation(domain, system, architecture):
 			'python': constructors.Inherit('tool:pyd-subprocess'),
 
 			'tool:pyd-subprocess': {
-				'method': 'python',
-				'command': __package__ + '.delineate',
 				'interface': constructors.__name__ + '.delineation',
+				'factor': __package__ + '.delineate',
+				'command': command,
+				'tool': ['delineate-python-source'],
 			},
 		},
 
@@ -148,7 +130,7 @@ def delineation(domain, system, architecture):
 		},
 	}
 
-def coverage(args, fault, ctx, ctx_route, ctx_params, domain):
+def coverage(settings, ctx, ctx_route, ctx_params, domain):
 	"""
 	# Initialize the tooling for coverage contexts.
 	"""
@@ -158,10 +140,13 @@ def coverage(args, fault, ctx, ctx_route, ctx_params, domain):
 	instantiate_software(ctx_route, 'f_intention', tool_name, tmpl_path, 'metrics')
 	return {}
 
-def install(args, fault, ctx, ctx_route, ctx_params):
+default_tool = (query.libexec()/'fault-dispatch')
+
+def install(settings, ctx, ctx_route, ctx_params):
 	"""
 	# Initialize the context for its configured intention.
 	"""
+	tool = settings.get('tool', default_tool)
 	ctx_intention = ctx_params['intention']
 	host_system = ctx.index['host']['system']
 
@@ -172,14 +157,14 @@ def install(args, fault, ctx, ctx_route, ctx_params):
 	domain_id = pydata['identifier']
 
 	if ctx_intention == 'delineation':
-		data = delineation(domain_id, host_system, arch)
+		data = delineation(domain_id, host_system, arch, str(tool))
 		ccd.update_named_mechanism(mechfile, 'root', {domain_id: data})
 	else:
-		data = compilation(domain_id, host_system, arch)
+		data = compilation(domain_id, host_system, arch, str(tool))
 		ccd.update_named_mechanism(mechfile, 'root', {domain_id: data})
 
 		if ctx_intention == 'coverage':
-			layer = coverage(args, fault, ctx, ctx_route, ctx_params, domain_id)
+			layer = coverage(settings, ctx, ctx_route, ctx_params, domain_id)
 			ccd.update_named_mechanism(mechfile, 'instrumentation-control', layer)
 
 	ccd.update_named_mechanism(mechfile, 'path-setup', {'context': {'path': [domain_id]}})
@@ -192,12 +177,13 @@ def install(args, fault, ctx, ctx_route, ctx_params):
 	})
 
 def main(inv:process.Invocation) -> process.Exit:
-	fault = inv.environ.get('FAULT_CONTEXT_NAME', 'fault')
-	ctx_route = files.Path.from_absolute(inv.environ['CONTEXT'])
+	ctx_route = files.Path.from_absolute(inv.argv[0])
+	settings = dict(zip(inv.argv[1::2], inv.argv[2::2]))
+
 	ctx = cc.Context.from_directory(ctx_route)
 	ctx_params = ctx.index['context']
-	install(inv.args, fault, ctx, ctx_route, ctx_params)
+	install(settings, ctx, ctx_route, ctx_params)
 	return inv.exit(0)
 
 if __name__ == '__main__':
-	process.control(main, process.Invocation.system(environ=('FAULT_CONTEXT_NAME', 'CONTEXT')))
+	process.control(main, process.Invocation.system())
