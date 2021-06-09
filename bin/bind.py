@@ -20,6 +20,7 @@ def compile_sc(target, source, include, compiler=None):
 	import sysconfig
 
 	ldflags = tuple(sysconfig.get_config_var('LDFLAGS').split())
+	libs = sysconfig.get_config_var('SHLIBS').split()
 	libdir = sysconfig.get_config_var('LIBDIR')
 	pyversion = sysconfig.get_config_var('VERSION')
 	pyabi = sysconfig.get_config_var('ABIFLAGS') or ''
@@ -35,6 +36,7 @@ def compile_sc(target, source, include, compiler=None):
 		rpath = '-Wl,-rpath,' + libdir
 		sysargv.append(rpath)
 
+	sysargv.extend(libs)
 	sysargv.extend([
 		'-I' + sysconfig.get_config_var('INCLUDEPY'),
 		'-I' + include,
