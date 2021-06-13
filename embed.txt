@@ -365,6 +365,7 @@ loaders and the second is for executing desired prerequisites for the primary en
 	if (mod == NULL)
 	{
 		log("ERROR", "could not import application module: " TARGET_MODULE);
+		PyErr_Print();
 		panic();
 		return(EX_SOFTWARE);
 	}
