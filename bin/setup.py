@@ -130,27 +130,25 @@ def delineation(domain, system, architecture, command):
 		},
 	}
 
-def coverage(settings, ctx, ctx_route, ctx_params, domain):
+def coverage(route, ctx, settings, domain):
 	"""
 	# Initialize the tooling for coverage contexts.
 	"""
 	imp = python.Import.from_fullname(__package__).container
 	tmpl_path = imp.file().container / 'templates' / 'context.txt'
-
-	instantiate_software(ctx_route, 'f_intention', tool_name, tmpl_path, 'metrics')
 	return {}
 
 default_tool = (query.libexec()/'fault-dispatch')
 
-def install(settings, ctx, ctx_route, ctx_params):
+def install(route, ctx, settings):
 	"""
 	# Initialize the context for its configured intention.
 	"""
 	tool = settings.get('tool', default_tool)
-	ctx_intention = ctx_params['intention']
+	ctx_intention = ctx.index['context']['intention']
 	host_system = ctx.index['host']['system']
 
-	mechfile = ctx_route / 'mechanisms' / name
+	mechfile = route / 'mechanisms' / name
 
 	pydata = identification()
 	arch = pydata['tag'].replace('-', '')
@@ -164,7 +162,7 @@ def install(settings, ctx, ctx_route, ctx_params):
 		ccd.update_named_mechanism(mechfile, 'root', {domain_id: data})
 
 		if ctx_intention == 'coverage':
-			layer = coverage(settings, ctx, ctx_route, ctx_params, domain_id)
+			layer = coverage(route, ctx, settings, domain_id)
 			ccd.update_named_mechanism(mechfile, 'instrumentation-control', layer)
 
 	ccd.update_named_mechanism(mechfile, 'path-setup', {'context': {'path': [domain_id]}})
@@ -177,12 +175,10 @@ def install(settings, ctx, ctx_route, ctx_params):
 	})
 
 def main(inv:process.Invocation) -> process.Exit:
-	ctx_route = files.Path.from_absolute(inv.argv[0])
+	route = files.Path.from_absolute(inv.argv[0])
 	settings = dict(zip(inv.argv[1::2], inv.argv[2::2]))
-
-	ctx = cc.Context.from_directory(ctx_route)
-	ctx_params = ctx.index['context']
-	install(settings, ctx, ctx_route, ctx_params)
+	ctx = cc.Context.from_directory(route)
+	install(route, ctx, settings)
 	return inv.exit(0)
 
 if __name__ == '__main__':
