@@ -51,7 +51,7 @@ loaders and the second is for executing desired prerequisites for the primary en
 	#endif
 
 	#ifndef FACTOR_SYSTEM
-		#define F_SYSTEM_STR
+		#define FACTOR_SYSTEM F_SYSTEM_STR
 	#endif
 
 	#ifndef FACTOR_MACHINE

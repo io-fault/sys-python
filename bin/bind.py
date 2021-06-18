@@ -160,7 +160,7 @@ def options(argv, symbol='main'):
 		elif opt == '-P':
 			paths.append(x[2:])
 		elif opt == '-S':
-			system_name = x[2:]
+			system = x[2:]
 		elif opt == '-M':
 			machine = x[2:]
 		elif opt == '-x':
