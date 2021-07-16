@@ -69,12 +69,11 @@ def compilation(domain, system, architecture, command):
 			# Effectively copy source files as &.bin.compile
 			# takes Python source.
 			'python': constructors.Projection,
-			'v3': constructors.Projection,
-			'v3.10': constructors.Projection,
 		},
 
 		'integrations': {
-			'python-module': constructors.Inherit('tool:pyc-subprocess'),
+			'http://if.fault.io/factors/python.module':
+				constructors.Inherit('tool:pyc-subprocess'),
 
 			# Likely unused in cases where the executing Python is the target Python.
 			'tool:pyc-subprocess': {
@@ -84,14 +83,6 @@ def compilation(domain, system, architecture, command):
 				'tool': ['compile-python-source'],
 			},
 		},
-
-		# They're not actually .pyc files, but rather raw marshal.dumps of code objects.
-		'formats': {
-			'python-module': 'pyc',
-		},
-		'target-file-extensions': {
-			'python-module': '.pyc',
-		},
 	}
 
 def delineation(domain, system, architecture, command):
@@ -100,23 +91,13 @@ def delineation(domain, system, architecture, command):
 	"""
 
 	return {
-		'formats': {
-			'python-module': 'i',
-		},
-		'target-file-extensions': {
-			'python-module': '.i',
-		},
-
 		'variants': {
 			'system': system,
 			'architecture': architecture,
 		},
 
 		'transformations': {
-			'v3.10': constructors.Inherit('tool:pyd-subprocess'),
-			'v3': constructors.Inherit('tool:pyd-subprocess'),
 			'python': constructors.Inherit('tool:pyd-subprocess'),
-
 			'tool:pyd-subprocess': {
 				'interface': constructors.__name__ + '.delineation',
 				'factor': __package__ + '.delineate',
@@ -126,7 +107,8 @@ def delineation(domain, system, architecture, command):
 		},
 
 		'integrations': {
-			'python-module': constructors.Clone,
+			'http://if.fault.io/factors/python.module':
+				constructors.Clone,
 		},
 	}
 
@@ -166,13 +148,6 @@ def install(route, ctx, settings):
 			ccd.update_named_mechanism(mechfile, 'instrumentation-control', layer)
 
 	ccd.update_named_mechanism(mechfile, 'path-setup', {'context': {'path': [domain_id]}})
-	ccd.update_named_mechanism(mechfile, 'language-specifications', {
-		'syntax': {
-			'target-file-extensions': {
-				'python': 'py',
-			},
-		}
-	})
 
 def main(inv:process.Invocation) -> process.Exit:
 	route = files.Path.from_absolute(inv.argv[0])

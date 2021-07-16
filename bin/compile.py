@@ -11,10 +11,8 @@ from .. import module
 from .. import bytecode
 
 def subprocess_bytecode_compiler(
-		transform_mech,
 		build, adapter,
-		o_type, output, i_type, inputs,
-		partials, libraries,
+		output, inputs,
 		verbose=True,
 		format=None,
 		filepath=str
@@ -24,7 +22,7 @@ def subprocess_bytecode_compiler(
 	# Executes in a distinct process.
 	"""
 
-	intention = build.context.intention
+	intention = build.intention
 	inf, = inputs # Only supports one source file.
 
 	optimize = '1'
@@ -36,11 +34,8 @@ def subprocess_bytecode_compiler(
 	return command + argv
 
 def function_bytecode_compiler(
-		transform_mech,
-		build, adapter,
-		o_type, output,
-		i_type, inputs,
-		partials, libraries,
+		build, adapter, output,
+		inputs,
 		verbose=True, filepath=str
 	):
 	"""
@@ -48,7 +43,7 @@ def function_bytecode_compiler(
 	# Executes locally to minimize overhead.
 	"""
 
-	intention = build.context.intention
+	intention = build.intention
 	inf, = inputs # Only supports one source file.
 	params = {
 		'factor': build.factor.absolute_path_string,
