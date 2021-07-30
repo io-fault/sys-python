@@ -76,13 +76,13 @@
 #endif
 
 #define _py_INIT_FUNC_X(BN) CONCAT_IDENTIFIER(PyInit_, BN)
-#define _py_INIT_FUNC _py_INIT_FUNC_X(FACTOR_BASENAME)
+#define _py_INIT_FUNC _py_INIT_FUNC_X(F_FACTOR_NAME)
 
 #if PY_MAJOR_VERSION < 3
 /*
 	# Python 2.x
 */
-#define _py_INIT_COMPAT CONCAT_IDENTIFIER(init, FACTOR_BASENAME)
+#define _py_INIT_COMPAT CONCAT_IDENTIFIER(init, F_FACTOR_NAME)
 
 /**
 	# Invoke the new signature.
