@@ -210,7 +210,7 @@ def apply(path, noded):
 
 	return instrument(path, noded, area)
 
-def compile(factor, source, path, constants, optimize=1,
+def compile(factor, source, path, constants,
 		parse=source.parse,
 		hash=module.hash_syntax,
 		filter=visit
@@ -232,7 +232,7 @@ def compile(factor, source, path, constants, optimize=1,
 	module.inject(tree, factor, hash(source), constants)
 	tree.body[0:0] = construct_initialization_nodes().body
 
-	return builtins.compile(tree, path, 'exec', optimize=optimize)
+	return tree
 
 if __name__ == '__main__':
 	from . import bytecode

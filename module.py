@@ -47,11 +47,10 @@ def inject(tree:ast.Module, factor:str, hash:str, constants:typing.Iterable[typi
 	tree.body[0:0] = cnodes
 	return cnodes
 
-def compile(factor, source, path, constants, optimize=1, compiler=builtins.compile):
+def compile(factor, source, path, constants):
 	"""
 	# Compile a module's source injecting a factor identifier and source hash.
 	"""
 	tree = ast.parse(source, path)
 	inject(tree, factor, hash_syntax(source), constants)
-
-	return compiler(tree, path, 'exec', optimize=optimize)
+	return tree
