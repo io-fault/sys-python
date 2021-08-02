@@ -1,4 +1,0 @@
-"""
-# Empty core module.
-"""
-pass
