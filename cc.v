@@ -2,9 +2,12 @@
 ##
 
 [unit-suffix]:
-	fv-idelineation: ""
-	fv-ianalysis: ""
-	!: ".ast"
+	fv-form-delineated:
+		# Delineation, no extension.
+		: ""
+	!:
+		# Execution imaging.
+		: ".ast"
 
 [protocol]:
 	: http://if.fault.io/project/integration.vectors
@@ -20,12 +23,19 @@
 	: "interpret-ast" - -
 	: [unit File]
 	: [source File]
+	fv-form-delineated:
+		: delineated json
+	: factor [factor-path]
 	: format [language].[dialect]
 	: intention [fv-intention]
 
--pyc-bytecode-1:
+-pyc-reduce-1:
 	: "compile-bytecode" - -
 	: [factor-image File]
-	: [unit File]
+	:
+		fv-form-delineated:
+			: [unit-directory File]
+			: delineated archive
+		!: [unit File]
 	: format python.ast
 	: intention [fv-intention]

@@ -8,6 +8,7 @@ import builtins
 import pickle
 
 from fault.system import process
+from fault.system import files
 
 def mkbytecode(target, unit, language, dialect, optimize, parameters=None):
 	from .. import bytecode
@@ -52,19 +53,45 @@ def mkast(target, origin, language, dialect, optimize, parameters=None):
 	with open(target, 'wb') as out:
 		pickle.dump((str(origin), ast), out)
 
+def delineate(output, origin, params):
+	from . import delineate
+	fpath = params['factor'].split('.')
+	delineate.process_source(str(output), str(origin), fpath)
+
+def replicate(target, origin):
+	(target).fs_alloc().fs_mkdir()
+	(target).fs_replace(origin)
+
+def archive(output, source):
+	"""
+	# Copy the units directory, &source, to the target image location &output.
+	"""
+	replicate(output, source)
+
 def main(inv:process.Invocation) -> process.Exit:
-	target, origin, *remainder = inv.args
+	out, src, *remainder = inv.args
+	output = files.Path.from_path(out)
+	source = files.Path.from_path(src)
 
 	params = dict()
 	params.update(zip(remainder[0::2], remainder[1::2]))
 
-	optimize = int(params.pop('optimize', 1))
+	intent = params.pop('intention', 'error')
+	optimize = int(params.pop('cpython-optimize', 1))
 	language, dialect = params.pop('format', 'python.psf-v3').split('.', 1)
+	delineated = params.pop('delineated', None)
 
-	if dialect == 'ast':
-		mkbytecode(target, origin, language, dialect, optimize, params)
+	if delineated is not None:
+		if delineated == 'archive':
+			archive(output, source)
+		else:
+			assert delineated == 'json'
+			delineate(output, source, params)
 	else:
-		mkast(target, origin, language, dialect, optimize, params)
+		if dialect == 'ast':
+			mkbytecode(output, source, language, dialect, optimize, params)
+		else:
+			mkast(output, source, language, dialect, optimize, params)
 
 	return inv.exit(0)
 

@@ -6,6 +6,7 @@ import ast
 import functools
 import typing
 import itertools
+import json
 
 from fault.system import process
 from fault.system import files
@@ -546,22 +547,13 @@ def load(source_path:str, identifier=None):
 
 	return root
 
-def main(inv:process.Invocation) -> process.Exit:
-	import json
-	target, source, *defines = inv.args # (output-directory, source-file-path)
-	root = load(source, source)
-
-	srcarg = dict(zip(defines[0::2], defines[1::2]))
-	try:
-		fpath = srcarg['FACTOR_QNAME'].split('.')
-	except KeyError:
-		fpath = []
-
+def process_source(output, input, fpath):
+	root = load(input, input)
 	s = Switch(fpath)
 	x, = s.comethod('module')(root)
 	x[2]['source-encoding'] = 'utf-8'
 
-	r = files.Path.from_path(target)
+	r = files.Path.from_path(output)
 	r.fs_mkdir()
 
 	with (r/"elements.json").fs_open('w') as f:
@@ -591,6 +583,10 @@ def main(inv:process.Invocation) -> process.Exit:
 	with (r/"data.json").fs_open('w') as f:
 		json.dump([keys, data], f)
 
+def main(inv:process.Invocation) -> process.Exit:
+	target, source, fpath = inv.args
+	fpath = fpath.split('.')
+	process(target, source, fpath)
 	return inv.exit(0)
 
 if __name__ == '__main__':
