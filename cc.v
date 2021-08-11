@@ -19,6 +19,17 @@
 	: module
 	: interface
 
+-cpy-optimize:
+	fv-intention-coverage:
+		: 0
+	fv-intention-debug:
+		: 0
+	fv-intention-profile:
+		: 2
+	fv-intention-optimal:
+		: 2
+	!: 1
+
 -pyc-ast-1:
 	: "interpret-ast" - -
 	: [unit File]
@@ -28,6 +39,7 @@
 	: factor [factor-path]
 	: format [language].[dialect]
 	: intention [fv-intention]
+	: cpython-optimize [-cpy-optimize]
 
 -pyc-reduce-1:
 	: "compile-bytecode" - -
