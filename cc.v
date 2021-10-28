@@ -1,5 +1,8 @@
-#!/usr/bin/env fault-tool cc-adapter
+#!/usr/bin/env fault-tool cc -pyc-reduce-1 -pyc-ast-1
 ##
+
+[protocol]:
+	: http://if.fault.io/project/integration.vectors
 
 [unit-suffix]:
 	fv-form-delineated:
@@ -8,9 +11,6 @@
 	!:
 		# Execution imaging.
 		: ".ast"
-
-[protocol]:
-	: http://if.fault.io/project/integration.vectors
 
 [factor-type]:
 	: http://if.fault.io/factors/python
