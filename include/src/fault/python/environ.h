@@ -28,6 +28,21 @@
 	#endif
 #endif
 
+#if __ALWAYS__()
+	/**
+		// Method definition macros.
+		// Documentation fields are inaccessible in anticipation of interface modules.
+	*/
+	#define PyMethod_Define(CC, NAME) \
+		{#NAME, (PyCFunction) PyMethod_Id(NAME), CC, NULL}
+
+	#define PyMethod_Variable(NAME) PyMethod_Define(METH_VARARGS, NAME)
+	#define PyMethod_Keywords(NAME) PyMethod_Define(METH_VARARGS|METH_KEYWORDS, NAME)
+	#define PyMethod_None(NAME) PyMethod_Define(METH_NOARGS, NAME)
+	#define PyMethod_Sole(NAME) PyMethod_Define(METH_O, NAME)
+	#define PyMethod_Vector(NAME) PyMethod_Define(METH_FASTCALL, NAME)
+#endif
+
 #define T_KPORT T_INT
 #define T_KERROR T_INT
 
