@@ -7,6 +7,27 @@
 #include <structmember.h>
 #include <pythread.h>
 
+#if __ALWAYS__()
+	/**
+		// Py_Is macros introduced in CPython 3.10.
+	*/
+	#ifndef Py_Is
+		#define Py_Is(x, y) ((x) == (y))
+	#endif
+
+	#ifndef Py_IsNone
+		#define Py_IsNone(ob) Py_Is(ob, Py_None)
+	#endif
+
+	#ifndef Py_IsFalse
+		#define Py_IsFalse(ob) Py_Is(ob, Py_False)
+	#endif
+
+	#ifndef Py_IsTrue
+		#define Py_IsTrue(ob) Py_Is(ob, Py_True)
+	#endif
+#endif
+
 #define T_KPORT T_INT
 #define T_KERROR T_INT
 
