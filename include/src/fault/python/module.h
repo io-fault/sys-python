@@ -3,48 +3,21 @@
 */
 #include "fault/symbols.h"
 
+#define FAULT_MODULE_FUNCTIONS() \
+	FAULT_METRICS_FUNCTIONS()
+
 #ifndef MODULE_FUNCTIONS
-	#warning MODULE_FUNCTIONS() macro not defined. Should be defined by importer. Using empty set.
-	#define MODULE_FUNCTIONS()
+	#error MODULE_FUNCTIONS() macro with PyMethodDef entries not defined.
 #endif
 
-#if FV_COVERAGE() && __clang__
-	void __llvm_profile_write_file(void);
-	void __llvm_profile_reset_counters(void);
-	void __llvm_profile_set_filename(const char *);
-
-	static PyObj _fault_metrics_flush(PyObj self) { __llvm_profile_write_file(); Py_RETURN_NONE; }
-	static PyObj _fault_metrics_clear(PyObj self) { __llvm_profile_reset_counters(); Py_RETURN_NONE; }
-
-	static PyObj _fault_metrics_file(PyObj self, PyObj filepath)
-	{
-		static char ifbuf[2048] = {0,}; /* buf must be valid after exit */
-
-		PyObj bytes;
-		bytes = PyUnicode_EncodeFSDefault(filepath);
-		if (bytes == NULL)
-			return(NULL);
-
-		if (PyBytes_GET_SIZE(bytes) < 2048)
-		{
-			memcpy(ifbuf, PyBytes_AS_STRING(bytes), PyBytes_GET_SIZE(bytes));
-			ifbuf[PyBytes_GET_SIZE(bytes)] = 0;
-			__llvm_profile_set_filename(ifbuf);
-		}
-
-		Py_DECREF(bytes);
-		Py_RETURN_NONE;
-	}
-
-	#define FAULT_MODULE_FUNCTIONS() \
-		PYMETHOD(_fault_metrics_set_path, _fault_metrics_file, METH_O, "set file path to write to" ) \
-		PYMETHOD(_fault_metrics_write, _fault_metrics_flush, METH_NOARGS, "save counters to disk" ) \
-		PYMETHOD(_fault_metrics_reset, _fault_metrics_clear, METH_NOARGS, "clear in memory counters" )
-#elif FV_COVERAGE()
-	#warning No suitable instrumentation for coverage and profiling.
-	#define FAULT_MODULE_FUNCTIONS()
-#else
-	#define FAULT_MODULE_FUNCTIONS()
+#define FAULT_METRICS_FUNCTIONS()
+#if FV_COVERAGE()
+	#if __clang__
+		#undef FAULT_METRICS_FUNCTIONS
+		#include "metrics/llvm.h"
+	#else
+		#warning Module-level metrics controls will not be available.
+	#endif
 #endif
 
 #if FV_INJECTIONS()
