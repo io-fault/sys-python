@@ -29,7 +29,11 @@ def compile_sc(target, source, include, compiler=None):
 	if not compiler:
 		compiler = sysconfig.get_config_var('CC') or 'cc'
 
-	sysargv = [compiler, '-w', '-x', 'c', '-o', target]
+	sysargv = [compiler, '-w',
+		'-x', 'c', '-std=iso9899:2011',
+		'-D_DEFAULT_SOURCE',
+		'-o', target, source,
+	]
 	sysargv.extend(ldflags)
 
 	if libdir:
@@ -42,7 +46,6 @@ def compile_sc(target, source, include, compiler=None):
 		'-I' + include,
 		'-L' + libdir,
 		'-l' + pyspec,
-		source,
 	])
 
 	return sysargv
