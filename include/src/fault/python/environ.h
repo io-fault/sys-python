@@ -79,8 +79,6 @@ _PyLoop_DictionaryItems(PyObj d)
 	return(iterator);
 }
 
-extern PyObj __dict__;
-
 static inline PyObj
 PyImport_ImportAdjacentEx(PyObj module, const char *modname, const char *attribute)
 {

@@ -24,7 +24,6 @@
 	#define DEFINE_MODULE_GLOBALS \
 		PyObj __ERRNO_RECEPTACLE__; \
 		PyObj __PYTHON_RECEPTACLE__; \
-		PyObj __dict__ = NULL;
 
 	#define DROP_MODULE_GLOBALS() do { \
 			Py_XDECREF(__ERRNO_RECEPTACLE__); \
@@ -70,8 +69,6 @@
 	{ \
 		PyObj _MOD = Py_InitModule(PYTHON_MODULE_PATH_STR, methods); \
 		if (_MOD) { \
-			__dict__ = PyModule_GetDict(_MOD); \
-			if (__dict__ == NULL) { Py_DECREF(_MOD); return(-1); } \
 			INIT_MODULE_GLOBALS(MODPARAM); \
 			if (PyErr_Occurred()) { Py_DECREF(_MOD); return(-1); } \
 			else { \
@@ -131,24 +128,15 @@ do { \
 		*MOD = NULL; /* error */ \
 	else \
 	{ \
-		__dict__ = PyModule_GetDict(_MOD); \
-		if (__dict__ == NULL) \
+		INIT_MODULE_GLOBALS(_MOD); \
+		if (PyErr_Occurred()) \
 		{ \
 			Py_DECREF(_MOD); \
 			*MOD = NULL; \
 		} \
 		else \
 		{ \
-			INIT_MODULE_GLOBALS(_MOD); \
-			if (PyErr_Occurred()) \
-			{ \
-				Py_DECREF(_MOD); \
-				*MOD = NULL; \
-			} \
-			else \
-			{ \
-				*MOD = _MOD; \
-			} \
+			*MOD = _MOD; \
 		} \
 	} \
 } while(0)
