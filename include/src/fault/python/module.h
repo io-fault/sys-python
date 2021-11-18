@@ -1,5 +1,5 @@
 /**
-	# Included once by the source file defining module initialization.
+	// Included once by the source file defining module initialization.
 */
 #include "fault/symbols.h"
 
@@ -52,14 +52,11 @@
 #define _py_INIT_FUNC _py_INIT_FUNC_X(F_FACTOR_NAME)
 
 #if PY_MAJOR_VERSION < 3
-/*
-	# Python 2.x
-*/
 #define _py_INIT_COMPAT CONCAT_IDENTIFIER(init, F_FACTOR_NAME)
 
 /**
-	# Invoke the new signature.
-	# Allows the user to return(NULL) regardless of Python version.
+	// Invoke the new signature.
+	// Allows the user to return(NULL) regardless of Python version.
 */
 #define INIT(MODPARAM, STATE_SIZE, DOCUMENTATION) \
 	DEFINE_MODULE_GLOBALS \
@@ -91,7 +88,7 @@
 #elif !defined(Py_mod_exec)
 
 /*
-	# Python 3.x without mod_exec
+	// Python 3.x without mod_exec
 */
 #define INIT(MODPARAM, STATE_SIZE, DOCUMENTATION) \
 	DEFINE_MODULE_GLOBALS \
