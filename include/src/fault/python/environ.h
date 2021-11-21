@@ -66,8 +66,26 @@ typedef PyObject * PyObj;
 	extern PyObj __PYTHON_RECEPTACLE__;
 #endif
 
-#ifndef Py_RETURN_NONE
-	#define Py_RETURN_NONE do { Py_INCREF(Py_None); return(Py_None); } while(0)
+#if __ALWAYS__(return-macros)
+	#ifndef Py_RETURN_NONE
+		#define Py_RETURN_NONE \
+			do { Py_INCREF(Py_None); return(Py_None); } while(0)
+	#endif
+
+	#ifndef Py_RETURN_TRUE
+		#define Py_RETURN_TRUE \
+			do { Py_INCREF(Py_True); return(Py_True); } while(0)
+	#endif
+
+	#ifndef Py_RETURN_FALSE
+		#define Py_RETURN_FALSE \
+			do { Py_INCREF(Py_False); return(Py_False); } while(0)
+	#endif
+
+	#ifndef Py_RETURN_NOTIMPLEMENTED
+		#define Py_RETURN_NOTIMPLEMENTED \
+			do { Py_INCREF(Py_NotImplemented); return(Py_NotImplemented); } while(0)
+	#endif
 #endif
 
 #define PyAllocate(TYP) (((PyTypeObject *) TYP)->tp_alloc((PyTypeObject *) TYP, 0))
