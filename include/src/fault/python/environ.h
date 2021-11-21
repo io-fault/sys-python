@@ -33,8 +33,13 @@
 		// Method definition macros.
 		// Documentation fields are inaccessible in anticipation of interface modules.
 	*/
+	#define PyMethod_InstanceType(X) X
+	#define PyMethod_ClassType(X) METH_CLASS|X
+
+	/* Default to instance methods */
+	#define PyMethod_TypeControl PyMethod_InstanceType
 	#define PyMethod_Define(CC, NAME) \
-		{#NAME, (PyCFunction) PyMethod_Id(NAME), CC, NULL}
+		{#NAME, (PyCFunction) PyMethod_Id(NAME), PyMethod_TypeControl(CC), NULL}
 
 	#define PyMethod_Variable(NAME) PyMethod_Define(METH_VARARGS, NAME)
 	#define PyMethod_Keywords(NAME) PyMethod_Define(METH_VARARGS|METH_KEYWORDS, NAME)
