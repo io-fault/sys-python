@@ -82,6 +82,11 @@ typedef PyObject * PyObj;
 			do { Py_INCREF(Py_False); return(Py_False); } while(0)
 	#endif
 
+	#ifndef Py_RETURN_INTEGER
+		#define Py_RETURN_INTEGER(N) \
+			do { return(PyLong_FromLong(N)); } while(0)
+	#endif
+
 	#ifndef Py_RETURN_NOTIMPLEMENTED
 		#define Py_RETURN_NOTIMPLEMENTED \
 			do { Py_INCREF(Py_NotImplemented); return(Py_NotImplemented); } while(0)
